@@ -1,27 +1,28 @@
 import { Command } from 'commander';
-import { exit } from 'process';
 import { listAvailableSubs } from './lang';
 
 const program = new Command();
 
 program
-  .option('--source-lang <language>', 'Pick the target language to translate, default: english (en)')
-  .option('-l, --lang <language>', 'Pick the target language to translate, default: english (en)', 'en')
-  .argument('[file]')
-  .option('--list-sub', 'List available subtitles')
+  .description('video-caption-translator: Translate video caption to any language with AI!')
+  .version('0.8.0')
+  .option("-l, --lang <language>", "pick the target language to translate", "en")
+  .option("-t, --type <type>", "output type. 'video', 'srt', 'vtt'", "video")
+  .option("-o, --output <path>", "output of translated caption")
+  .option("--tone <tone>", "pick the tone for translate", "neutral")
+  .option("--source-lang <language>", "pick the source language, default: auto-detected")
+  .argument('<file>', 'input video. supported format: mkv, mp4, vtt')
   .action((file, options) => {
-    if (options.listSub) {
-      listAvailableSubs();
-      return
+    if (!options.output) {
+      console.error("error: required option '-o, --output <path>' not specified");
+      process.exit(1);
     }
+  })
 
-    if (file) {
-      console.log("Value");
-      return;
-    }
-
-    console.error("error: missing required argument 'file'");
-    exit(1);
+program.command('listsub')
+  .description('iist all available subtitles')
+  .action(() => {
+    listAvailableSubs();
   })
 
 program.parse();

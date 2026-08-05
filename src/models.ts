@@ -1,7 +1,7 @@
 import { Ollama } from 'ollama'
 
 import 'dotenv/config';
-import { Cue, CueChunk, CueShort } from './types';
+import { Cue, CueChunk, CueShort, TranslateParams } from './types';
 
 const SYSTEM_PROMPT = `You are a professional subtitle translation engine.
 Your ONLY job is to translate the "text" field of each cue, without altering the data structure index, start, end, cue count, or cue order.
@@ -54,11 +54,11 @@ async function test() {
   console.log(response);
 }
 
-export function translateChunk(chunk: CueChunk, targetLang: string, previousCues: CueShort[]) {
+export function translateChunk(chunk: CueChunk, previousCues: CueShort[], options: TranslateParams) {
   const prompt = [
-    `target_language: ${targetLang}`,
+    `target_language: ${options.targetLang}`,
     // `domain: `
-    'tone: neutral',
+    `tone: ${options.tone}`,
     previousCues.length > 0 ? `Previous translated cues:\n${JSON.stringify(previousCues)}` : '',
     'Translate this cue array:',
     JSON.stringify(chunk)
@@ -66,5 +66,5 @@ export function translateChunk(chunk: CueChunk, targetLang: string, previousCues
 
   // console.log(prompt);
 
-  return [...chunk];
+  return chunk.map(c => ({ ...c, text: `[Translated] ${c.text}` }));
 }
