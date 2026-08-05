@@ -25,7 +25,7 @@ export const AVAILABLE_LANG = [
   'vi', // Vietnamese
 ];
 
-export function listAvailableSubs() {
+export function listSubs() {
   console.log("Available Language:");
   AVAILABLE_LANG.forEach((lang) => {
     console.log(`- '${lang}'\t${iso6391.getName(lang) + (lang == 'en' ? ' (Default)' : '')}`);

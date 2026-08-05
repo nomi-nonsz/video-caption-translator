@@ -4,12 +4,19 @@ import { execa } from "execa";
 import { fileTypeFromFile } from "file-type";
 import { NodeList, parseSync, stringifySync } from "subtitle";
 
-import type { Cue, CueChunk, CueShort, OutputFormat, TranslateParams } from "./types";
+import type {
+  Cue,
+  CueChunk,
+  CueShort,
+  TranslateOption,
+  TranslateParams
+} from "./types";
 import { getLanguageName, toThreeLetterCode } from "./lang";
-import { translateChunkTest } from "./models";
+import { translateChunk, translateChunkTest } from "./models";
 import { checkFile } from "./utils";
 
-const PATH = "/mnt/smb/downloads/THE\ AMAZING\ DIGITAL\ CIRCUS\ S01E06：\ They\ All\ Get\ Guns\ \[mOvhHim78YA\].mkv";
+// const PATH = "/mnt/smb/downloads/THE\ AMAZING\ DIGITAL\ CIRCUS\ S01E06：\ They\ All\ Get\ Guns\ \[mOvhHim78YA\].mkv";
+const PATH = "./sandbox/test-input.mkv";
 
 const SUPPORTED_CONTAINER = [,
   'mkv',
@@ -71,7 +78,7 @@ function parseSub(cues: Cue[], format: 'SRT' | 'WebVTT') {
   return srt;
 }
 
-async function embedToVideo(srt: string, lang: string, inpath: string, outpath: string, hardsub: boolean | null = false) {
+async function embedToVideo(srt: string, lang: string, inpath: string, outpath: string) {
   const subPath = `/tmp/${crypto.randomUUID()}-${Date.now()}.srt`;
   
   await fs.writeFile(subPath, srt, { encoding: 'utf-8' });
@@ -107,7 +114,7 @@ function splitToChunks(cues: Cue[], size: number) {
   }
   return chunks;
 }
-async function translateAllChunks(chunks: CueChunk[], options: TranslateParams) {
+async function translateAllChunks(chunks: CueChunk[], model: string, options: TranslateParams) {
   let previousCues: CueShort[] = [];
   let results: Cue[] = [];
   let i = 1;
@@ -116,9 +123,9 @@ async function translateAllChunks(chunks: CueChunk[], options: TranslateParams) 
 
     for (const chunk of chunks) {
       console.log(`[video-caption-translator] [${Math.floor((i/chunks.length) * 100)}/100] Translating cue ${chunk[0]?.index}-${chunk[chunk.length-1]?.index}`);
-      const translated = translateChunkTest(chunk, previousCues, { ...options, targetLang });
+      const translated = (await translateChunk(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
       results = [...results, ...translated];
-      previousCues = translated.slice(-4).map(cue => ({
+      previousCues = translated.slice(-4).map((cue) => ({
         index: cue.index,
         text: cue.text
       }));
@@ -126,14 +133,15 @@ async function translateAllChunks(chunks: CueChunk[], options: TranslateParams) 
     }
   } catch (err) {
     console.error(err);
-    console.error("[video-caption-translator] Error: failed to translating the caption");
+    console.error("[video-caption-translator] Error: failed to translating the subtitle");
     process.exit(1);
   } finally {
     return results;
   }
 }
 
-export async function translate(inpath: string, outpath: string, outformat: OutputFormat, chunkSize: number, options: TranslateParams) {
+export async function translate(inpath: string, outpath: string, option: TranslateOption) {
+  const { chunkSize, params, format } = option;
   const subName = `${crypto.randomUUID()}-${Date.now()}`;
   const subPath = `/tmp/${subName}.srt`;
 
@@ -168,26 +176,36 @@ export async function translate(inpath: string, outpath: string, outformat: Outp
 
   console.log("[video-caption-translator] Begin Translating...");
 
-  const translatedCues = await translateAllChunks(chunks, options);
+  // console.log(chunks.map(c => c.map(({ index, text }) => ({ index, text }))))
+
+  const translatedCues = await translateAllChunks(chunks, option.model, params);
   await fs.rm(subPath);
 
   console.log("[video-caption-translator] Subtitle translation completed. Saving...");
 
-  const subFormat: 'WebVTT' | 'SRT' = outformat == 'vtt' ? 'WebVTT' : 'SRT';
+  const subFormat: 'WebVTT' | 'SRT' = format == 'vtt' ? 'WebVTT' : 'SRT';
   const translated = parseSub(translatedCues, subFormat);
 
   if (path.extname(outpath).length < 1) {
-    const ext = outformat == 'video' ? containerType!.ext : outformat;
+    const ext = format == 'video' ? containerType!.ext : format;
     outpath = `${outpath}.${ext}`;
   }
 
-  if (outformat == 'srt' || outformat == 'vtt') {
+  if (format == 'srt' || format == 'vtt') {
     await fs.writeFile(outpath, translated, { encoding: 'utf-8' });
   } else {
-    await embedToVideo(translated, options.targetLang, inpath, outpath);
+    await embedToVideo(translated, params.targetLang, inpath, outpath);
   }
 
   console.log(`[video-caption-translator] Saved at ${outpath}.`);
 }
 
-translate(PATH, './test', 'video', 15, { targetLang: 'en', tone: 'neutral' });
+// translate(PATH, './sandbox/test-output.srt', {
+//   format: 'srt',
+//   chunkSize: 15,
+//   model: 'gemma4:31b',
+//   params: {
+//     targetLang: 'id',
+//     tone: 'neutral'
+//   }
+// });

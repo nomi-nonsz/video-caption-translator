@@ -8,6 +8,8 @@ export type CueShort = {
 export type CueChunk = Cue[];
 
 export type TranslateTone = 'formal' | 'informal' | 'casual' | 'neutral';
+export type SubtitleFormat = 'SRT' | 'WebVTT';
+export type OutputFormat = 'video' | 'srt' | 'vtt';
 
 export type TranslateParams = {
   sourceLang?: string,
@@ -16,5 +18,9 @@ export type TranslateParams = {
   domain?: string
 }
 
-export type SubtitleFormat = 'SRT' | 'WebVTT';
-export type OutputFormat = 'video' | 'srt' | 'vtt';
+export type TranslateOption = {
+  format: OutputFormat,
+  chunkSize: number,
+  model: string,
+  params: TranslateParams
+}

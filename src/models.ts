@@ -38,23 +38,37 @@ it with your best possible translation attempt — never skip or leave a cue
 empty.
 `;
 
+const ollama = new Ollama({
+  host: 'https://ollama.com',
+  headers: { Authorization: 'Bearer ' + process.env.OLLAMA_API_KEY },
+})
+
+export async function getModels() {
+  const res = await ollama.list();
+  return res.models;
+}
+
+export async function listModels() {
+  const models = (await getModels()).sort((a, b) => a.name.localeCompare(b.name));
+
+  console.log("List models:");
+  for (const model of models) {
+    console.log(`- ${model.name}`);
+  }
+}
+
 async function test() {
-  const ollama = new Ollama({
-    host: 'https://ollama.com',
-    headers: { Authorization: 'Bearer ' + process.env.OLLAMA_API_KEY },
-  })
-  
   const response = await ollama.generate({
-    model: 'gpt-oss:120b',
+    model: 'gemma4:31b',
     prompt: "Write one sentence about unicorn",
     stream: false,
-    think: false
+    think: 'low',
   })
   
   console.log(response);
 }
 
-export function translateChunkTest(chunk: CueChunk, previousCues: CueShort[], options: TranslateParams) {
+export async function translateChunkTest(chunk: CueChunk, model: string, previousCues: CueShort[], options: TranslateParams) {
   const prompt = [
     `target_language: ${options.targetLang}`,
     // `domain: `
@@ -64,7 +78,36 @@ export function translateChunkTest(chunk: CueChunk, previousCues: CueShort[], op
     JSON.stringify(chunk)
   ].join("\n");
 
-  // console.log(prompt);
+  console.log(prompt);
+  
+  await new Promise(resolve => setTimeout(resolve, 100));
 
   return chunk.map(c => ({ ...c, text: `[Translated] ${c.text}` }));
+}
+
+export async function translateChunk(chunk: CueChunk, model: string, previousCues: CueShort[], options: TranslateParams) {
+  const prompt = [
+    `target_language: ${options.targetLang}`,
+    `tone: ${options.tone}`,
+    previousCues.length > 0 ? `Previous translated cues:\n${JSON.stringify(previousCues)}` : '',
+    'Translate this cue array:',
+    JSON.stringify(chunk)
+  ].join("\n");
+
+  const res = await ollama.generate({
+    model,
+    system: SYSTEM_PROMPT,
+    prompt: prompt,
+    stream: false,
+    think: false,
+    options: {
+      temperature: 0.3
+    },
+    format: 'json'
+  });
+
+  // console.log(res);
+  console.log(JSON.parse(res.response));
+
+  return JSON.parse(res.response) || [];
 }

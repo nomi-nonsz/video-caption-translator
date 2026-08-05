@@ -1,6 +1,7 @@
 import { Command } from 'commander';
-import { AVAILABLE_LANG, listAvailableSubs } from './lang';
+import { AVAILABLE_LANG, listSubs } from './lang';
 import { translate } from './translate';
+import { listModels } from './models';
 
 const validOutputFormats = ['video', 'srt', 'vtt'] as const;
 
@@ -13,10 +14,28 @@ program
   .option("-t, --type <type>", "output type. 'video', 'srt', 'vtt'", "video")
   .option("-o, --output <path>", "output of translated caption")
   .option('-s, --size <size>', "chunk size per cue", "15")
+  .option('-m, --model <model>', "specify LLM model for translating. if no model is specify, the first model will be used.")
   .option("--tone <tone>", "pick the tone for translate", "neutral")
   .option("--source-lang <language>", "pick the source language, default: auto-detected")
-  .argument('<file>', 'input video. supported format: mkv, mp4, vtt')
+  .option("--list-subs", "iist all available subtitles")
+  .option("--list-models", "iist available ollama models")
+  .argument('[file]', 'input video. supported format: mkv, mp4, vtt')
   .action(async (file, options) => {
+    if (!file) {
+      if (options.listSubs) {
+        listSubs();
+        return;
+      }
+      
+      if (options.listModels) {
+        await listModels();
+        return;
+      }
+
+      console.error("error: missing required argument 'file'");
+      process.exit(1);
+    }
+
     if (!options.output) {
       console.error("error: required option '-o, --output <path>' not specified");
       process.exit(1);
@@ -42,17 +61,19 @@ program
       process.exit(1);
     }
 
-    await translate(file, options.output, options.type, Number(options.size), {
-      sourceLang: options.sourceLang,
-      targetLang: options.lang,
-      tone: options.tone,
-    });
-  })
+    // const models = await getModels();
+    // const model = options.model as string | null || (models.length > 0 ? models[0]!.name : '');
 
-program.command('listsub')
-  .description('iist all available subtitles')
-  .action(() => {
-    listAvailableSubs();
+    await translate(file, options.output, {
+      format: options.type,
+      chunkSize: Number(options.size),
+      model: 'gemma4:31b',
+      params: {
+        sourceLang: options.sourceLang,
+        targetLang: options.lang,
+        tone: options.tone
+      }
+    });
   })
 
 program.parse();
