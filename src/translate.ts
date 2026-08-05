@@ -6,10 +6,9 @@ import { NodeList, parseSync, stringifySync } from "subtitle";
 
 import type { Cue, CueChunk, CueShort, OutputFormat, TranslateParams } from "./types";
 import { getLanguageName, toThreeLetterCode } from "./lang";
-import { translateChunk } from "./models";
+import { translateChunkTest } from "./models";
 import { checkFile } from "./utils";
 
-const CHUNK_SIZE = 15;
 const PATH = "/mnt/smb/downloads/THE\ AMAZING\ DIGITAL\ CIRCUS\ S01E06：\ They\ All\ Get\ Guns\ \[mOvhHim78YA\].mkv";
 
 const SUPPORTED_CONTAINER = [,
@@ -101,10 +100,10 @@ async function embedToVideo(srt: string, lang: string, inpath: string, outpath: 
   4. Send the last few cues from the previous chunk as context (without asking for a new translation) so that pronouns and dialogue continuity remain consistent.
     Alternatively, save a brief summary (“running summary”) of the previous chunks and include it in the system prompt for each new chunk.
  */
-function splitToChunks(cues: Cue[]) {
+function splitToChunks(cues: Cue[], size: number) {
   const chunks: CueChunk[] = [];
-  for (let i = 0; i < cues.length; i += CHUNK_SIZE) {
-    chunks.push(cues.slice(i, i + CHUNK_SIZE));
+  for (let i = 0; i < cues.length; i += size) {
+    chunks.push(cues.slice(i, i + size));
   }
   return chunks;
 }
@@ -117,7 +116,7 @@ async function translateAllChunks(chunks: CueChunk[], options: TranslateParams) 
 
     for (const chunk of chunks) {
       console.log(`[video-caption-translator] [${Math.floor((i/chunks.length) * 100)}/100] Translating cue ${chunk[0]?.index}-${chunk[chunk.length-1]?.index}`);
-      const translated = translateChunk(chunk, previousCues, { ...options, targetLang });
+      const translated = translateChunkTest(chunk, previousCues, { ...options, targetLang });
       results = [...results, ...translated];
       previousCues = translated.slice(-4).map(cue => ({
         index: cue.index,
@@ -134,7 +133,7 @@ async function translateAllChunks(chunks: CueChunk[], options: TranslateParams) 
   }
 }
 
-export async function translate(inpath: string, outpath: string, outformat: OutputFormat, options: TranslateParams) {
+export async function translate(inpath: string, outpath: string, outformat: OutputFormat, chunkSize: number, options: TranslateParams) {
   const subName = `${crypto.randomUUID()}-${Date.now()}`;
   const subPath = `/tmp/${subName}.srt`;
 
@@ -153,6 +152,7 @@ export async function translate(inpath: string, outpath: string, outformat: Outp
   console.log("[video-caption-translator] Obtaining available source language...");
 
   const subList = await listSubStreams(inpath);
+  console.log(subList);
   const streamIndex = getLanguageIndex(subList);
 
   if (streamIndex < 0) {
@@ -164,14 +164,14 @@ export async function translate(inpath: string, outpath: string, outformat: Outp
 
   const srtContent = await getSrtContent(inpath, subPath, streamIndex);
   const cues = parseToCue(srtContent);
-  const chunks = splitToChunks(cues);
+  const chunks = splitToChunks(cues, chunkSize);
 
   console.log("[video-caption-translator] Begin Translating...");
 
   const translatedCues = await translateAllChunks(chunks, options);
   await fs.rm(subPath);
 
-  console.log("[video-caption-translator] Subtitle translation completed.");
+  console.log("[video-caption-translator] Subtitle translation completed. Saving...");
 
   const subFormat: 'WebVTT' | 'SRT' = outformat == 'vtt' ? 'WebVTT' : 'SRT';
   const translated = parseSub(translatedCues, subFormat);
@@ -190,4 +190,4 @@ export async function translate(inpath: string, outpath: string, outformat: Outp
   console.log(`[video-caption-translator] Saved at ${outpath}.`);
 }
 
-translate(PATH, './test', 'video', { targetLang: 'en', tone: 'neutral' });
+translate(PATH, './test', 'video', 15, { targetLang: 'en', tone: 'neutral' });

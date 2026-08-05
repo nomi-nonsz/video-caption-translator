@@ -1,7 +1,7 @@
 import iso6391 from 'iso-639-1';
 import { iso6393To1 } from 'iso-639-3';
 
-const AVAILABLE_LANG = [
+export const AVAILABLE_LANG = [
   'en', // English
   'ar', // Arabic
   'zh', // Chinese

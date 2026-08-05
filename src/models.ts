@@ -54,7 +54,7 @@ async function test() {
   console.log(response);
 }
 
-export function translateChunk(chunk: CueChunk, previousCues: CueShort[], options: TranslateParams) {
+export function translateChunkTest(chunk: CueChunk, previousCues: CueShort[], options: TranslateParams) {
   const prompt = [
     `target_language: ${options.targetLang}`,
     // `domain: `
