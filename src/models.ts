@@ -43,10 +43,17 @@ it with your best possible translation attempt — never skip or leave a cue
 empty.
 `;
 
-const ollama = new Ollama({
-  host: 'https://ollama.com',
-  headers: { Authorization: 'Bearer ' + process.env.OLLAMA_API_KEY },
-})
+const ollama = ollamaInit();
+
+function ollamaInit() {
+  if (process.env.OLLAMA_HOST || process.env.OLLAMA_API_KEY) {
+    return new Ollama({
+      host: process.env.OLLAMA_HOST || 'https://ollama.com',
+      headers: { Authorization: 'Bearer ' + process.env.OLLAMA_API_KEY },
+    })
+  }
+  return new Ollama();
+}
 
 export async function getModels() {
   const res = await ollama.list();

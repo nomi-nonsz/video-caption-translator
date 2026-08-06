@@ -6,14 +6,16 @@
   "type": "module",
   "main": "index.ts",
   "bin": {
-    "translator": "./dist/index.js"
+    "video-caption-translator": "./dist/index.js"
   },
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "bun src/index.ts",
+    "build": "bun build --compile --minify ./src/index.ts --outfile video-caption-translator",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
+    "tsup": "^8.5.1",
     "tsx": "^4.23.5",
     "typescript": "^7.0.2"
   },
