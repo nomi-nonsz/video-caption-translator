@@ -4,19 +4,15 @@ A command-based AI-powered tool for translating video subtitles.
 
 ## Overview
 
-`video-caption-translator` is a command-line tool build with typescript to translate video subtitles with LLM. It reads subtitles from a video and translating the cues to the backends, and can output translated captions as standalone subtitle files or embed soft subtitles back into the video.
+`video-caption-translator` is a command-line tool build with bun and typescript. Uses Ollama backend to translate video subtitles. It reads subtitles from a video and translating the cues, and can output translated captions as standalone subtitle files or embed soft subtitles back into the video.
 
 Currently it uses ollama as a backends for testing because we broke af
 
 # Installation:
 
-| **Note**: This project was developed on Linux, so it may only be supported on Linux or macOS.
+| IMPORTANT NOTE: This project depends on `ffmpeg` and `ffprobe`. It is **HIGHLY RECOMMENDED** that you install these tools first.
 
-| **This project depends on `ffmpeg` and `ffprobe`, It this recommended to install it first**
-
-```bash
-comming soon
-```
+For installation, go to [releases page](https://github.com/nomi-nonsz/video-caption-translator/releases) and download the executable binary based on your operating system.
 
 # Usage
 
@@ -76,7 +72,7 @@ OLLAMA_API_KEY=<your-api-key> video-caption-translator --type video -o mycontent
 ## Supported Formats
 
 Video:
-- Mastroka `mkv`
+- Matroska `mkv`
 - WebM `webm`
 - MP4 `mp4` (limited)
 
