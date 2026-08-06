@@ -11,7 +11,7 @@ const program = new Command();
 
 program
   .description('video-caption-translator: Translate video caption to any language with AI!')
-  .version('1.0.0')
+  .version('1.0.1')
   .option("-l, --lang <language>", "pick the target language to translate", "en")
   .option("-t, --type <type>", "output type. 'video', 'srt', 'vtt'", "video")
   .option("-o, --output <path>", "output of translated caption")
