@@ -1,8 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
 import { execa } from "execa";
-import { fileTypeFromFile } from "file-type";
 import { NodeList, parseSync, stringifySync } from "subtitle";
+import Bun from "bun"
 
 import type {
   Cue,
@@ -16,10 +16,20 @@ import { translateChunk, translateChunkTest } from "./models";
 import { checkFile } from "./utils";
 
 const SUPPORTED_CONTAINER = [,
-  'mkv',
-  'mp4',
-  'webm'
+  'video/x-matroska', // mkv
+  'video/mp4', // mp4
+  'video/webm' // webm
 ]
+
+const EXT_CONTAINER = {
+  'video/x-matroska': 'mkv',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm'
+}
+
+function getVideoExt(mime: string) {
+  return Object.entries(EXT_CONTAINER).find(a => a[0] == mime)?.[1];
+}
 
 async function listSubStreams(path: string) {
   const proc = await execa('ffprobe', [
@@ -149,9 +159,9 @@ export async function translate(inpath: string, outpath: string, option: Transla
     process.exit(1);
   }
 
-  const containerType = await fileTypeFromFile(inpath);
+  const containerMIME = Bun.file(inpath).type;
 
-  if (!SUPPORTED_CONTAINER.includes(containerType?.ext)) {
+  if (!SUPPORTED_CONTAINER.includes(containerMIME)) {
     console.error(`[video-caption-translator] Error: ${inpath} is not supported with available formats: mp4, mkv, webm`);
     process.exit(1);
   }
@@ -185,7 +195,7 @@ export async function translate(inpath: string, outpath: string, option: Transla
   const translated = parseSub(translatedCues, subFormat);
 
   if (path.extname(outpath).length < 1) {
-    const ext = format == 'video' ? containerType!.ext : format;
+    const ext = format == 'video' ? getVideoExt(containerMIME) : format;
     outpath = `${outpath}.${ext}`;
   }
 
