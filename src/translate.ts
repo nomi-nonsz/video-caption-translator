@@ -15,9 +15,6 @@ import { getLanguageName, toThreeLetterCode } from "./lang";
 import { translateChunk, translateChunkTest } from "./models";
 import { checkFile } from "./utils";
 
-// const PATH = "/mnt/smb/downloads/THE\ AMAZING\ DIGITAL\ CIRCUS\ S01E06：\ They\ All\ Get\ Guns\ \[mOvhHim78YA\].mkv";
-const PATH = "./sandbox/test-input.mkv";
-
 const SUPPORTED_CONTAINER = [,
   'mkv',
   'mp4',
@@ -145,6 +142,8 @@ export async function translate(inpath: string, outpath: string, option: Transla
   const subName = `${crypto.randomUUID()}-${Date.now()}`;
   const subPath = `/tmp/${subName}.srt`;
 
+  console.log(`[video-caption-translator] Using model ${option.model}.`);
+
   if (!(await checkFile(inpath))) {
     console.error(`[video-caption-translator] Error: Cannot access ${inpath}. Either it's not accessable or it doesn't exist`);
     process.exit(1);
@@ -160,7 +159,6 @@ export async function translate(inpath: string, outpath: string, option: Transla
   console.log("[video-caption-translator] Obtaining available source language...");
 
   const subList = await listSubStreams(inpath);
-  console.log(subList);
   const streamIndex = getLanguageIndex(subList);
 
   if (streamIndex < 0) {
@@ -200,7 +198,7 @@ export async function translate(inpath: string, outpath: string, option: Transla
   console.log(`[video-caption-translator] Saved at ${outpath}.`);
 }
 
-// translate(PATH, './sandbox/test-output.srt', {
+// translate("./sandbox/test-input.mkv", './sandbox/test-output.srt', {
 //   format: 'srt',
 //   chunkSize: 15,
 //   model: 'gemma4:31b',

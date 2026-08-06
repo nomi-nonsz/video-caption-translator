@@ -1,9 +1,9 @@
 import { Command } from 'commander';
 import { AVAILABLE_LANG, listSubs } from './lang';
 import { translate } from './translate';
-import { listModels } from './models';
+import { getModels, listModels } from './models';
 
-const validOutputFormats = ['video', 'srt', 'vtt'] as const;
+const validOutputFormats = ['video', 'srt', 'vtt'];
 
 const program = new Command();
 
@@ -42,7 +42,7 @@ program
     }
 
     if (!AVAILABLE_LANG.includes(options.lang)) {
-      console.error(`error: invalid target language '${options.lang}'. use listsub to see the available languages`);
+      console.error(`error: invalid target language '${options.lang}'. use --listsub to see the available languages`);
       process.exit(1);
     }
 
@@ -57,17 +57,24 @@ program
     }
 
     if (isNaN(Number(options.size))) {
-      console.error("error: chunk size must be a number");
+      console.error("error: chunk size must be a number!");
       process.exit(1);
     }
 
-    // const models = await getModels();
-    // const model = options.model as string | null || (models.length > 0 ? models[0]!.name : '');
+    if (!options.model) {
+      console.warn("warning: no model specified, selecting the first model...");
+      const models = await getModels();
+      if (models.length < 1) {
+        console.error("error: no models are available.");
+        process.exit(1);
+      }
+      options.model = (models.length > 0 ? models[0]!.name : '');
+    }
 
     await translate(file, options.output, {
       format: options.type,
       chunkSize: Number(options.size),
-      model: 'gemma4:31b',
+      model: options.model,
       params: {
         sourceLang: options.sourceLang,
         targetLang: options.lang,

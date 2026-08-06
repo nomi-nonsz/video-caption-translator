@@ -1,7 +1,12 @@
 import { Ollama } from 'ollama'
 
 import 'dotenv/config';
-import { Cue, CueChunk, CueShort, TranslateParams } from './types';
+import {
+  Cue,
+  CueChunk,
+  CueShort,
+  TranslateParams
+} from './types';
 
 const SYSTEM_PROMPT = `You are a professional subtitle translation engine.
 Your ONLY job is to translate the "text" field of each cue, without altering the data structure index, start, end, cue count, or cue order.
@@ -20,7 +25,7 @@ The following parameters will be provided at the start of each request
 (use defaults if not specified):
 - source_language (default: auto-detect)
 - target_language (required, e.g. "en", "id")
-- tone: "formal" | "informal" | "casual" | "neutral" (default: natural/neutral)
+- tone: "formal" | "informal" | "casual" | "neutral" | string (default: natural/neutral)
 - previous_context (optional): a summary or the last few translated cues from the previous chunk, used only as reference to preserve terminology and tone continuity — it should NOT be re-translated.
 
 === OUTPUT FORMAT ===

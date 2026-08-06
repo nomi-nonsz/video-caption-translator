@@ -7,7 +7,7 @@ export type CueShort = {
 }
 export type CueChunk = Cue[];
 
-export type TranslateTone = 'formal' | 'informal' | 'casual' | 'neutral';
+export type TranslateTone = 'formal' | 'informal' | 'casual' | 'neutral' | string;
 export type SubtitleFormat = 'SRT' | 'WebVTT';
 export type OutputFormat = 'video' | 'srt' | 'vtt';
 
