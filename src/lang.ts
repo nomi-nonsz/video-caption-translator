@@ -43,3 +43,14 @@ export function toThreeLetterCode(twoLetterCode: string) {
   );
   return entry?.[0] || twoLetterCode.slice(0, 2) + iso6391.getName(twoLetterCode)[2]?.toLocaleLowerCase();
 }
+
+export function getLanguageIndex(subs: any[]): number {
+  const engSDH = subs.find((s) => s.tags.language == 'eng' && s.disposition.hearing_impaired);
+  const engOnly = subs.find((s) => s.tags.language == 'eng');
+
+  if (engSDH) return engSDH.index as number;
+  if (engOnly) return engOnly.index as number;
+  if (subs[0].index && typeof subs[0].index == 'number') return subs[0].index;
+
+  return -1;
+}

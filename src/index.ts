@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { AVAILABLE_LANG, listSubs } from './lang';
 import { translate } from './translate';
-import { getModels, listModels } from './models';
+import { getModels, listModels } from './translation-model';
 
 const validOutputFormats = ['video', 'srt', 'vtt'];
 

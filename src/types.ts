@@ -24,3 +24,34 @@ export type TranslateOption = {
   model: string,
   params: TranslateParams
 }
+
+export interface ModelConfig {
+  openai?: {
+    apiKey: string;
+  };
+  anthropic?: {
+    apiKey: string;
+  };
+  ollama?: {
+    host?: string | undefined;
+    apiKey?: string | undefined;
+  };
+  scheme?: any;
+}
+
+export type Message = {
+  role: 'assistant' | 'user' | 'system',
+  content: string
+};
+
+export interface GenerateRequest {
+  model: string;
+  messages: Message[],
+  system?: string;
+  think?: boolean;
+  options?: any;
+}
+
+export interface GenerateResponse {
+  message: Message;
+}
