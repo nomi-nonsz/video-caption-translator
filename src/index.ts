@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { AVAILABLE_LANG, listSubs } from './lang';
+import { AVAILABLE_LANG, listSubs } from './lib/lang';
 import { translate } from './translate';
-import { getModels, listModels } from './translation-model';
+import { getModels, listModels } from './lib/translation-model';
 
 const validOutputFormats = ['video', 'srt', 'vtt'];
 

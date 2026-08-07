@@ -4,10 +4,10 @@ import type {
   Cue,
   CueChunk,
   TranslateOption,
-} from "./types";
-import { getLanguageIndex } from "./lang";
-import { translateAllChunks } from "./translation-model";
-import { checkFile } from "./utils";
+} from "./lib/types";
+import { getLanguageIndex } from "./lib/lang";
+import { translateAllChunks } from "./lib/translation-model";
+import { checkFile } from "./lib/utils";
 import {
   embedToVideo,
   getSrtContent,
@@ -16,7 +16,7 @@ import {
   parseSub,
   parseToCue,
   SUPPORTED_CONTAINER
-} from "./media";
+} from "./lib/media";
 
 function splitToChunks(cues: Cue[], size: number) {
   const chunks: CueChunk[] = [];
