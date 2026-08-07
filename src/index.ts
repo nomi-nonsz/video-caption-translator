@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { AVAILABLE_LANG, listSubs } from './lang';
+import { AVAILABLE_LANG, listSubs } from './lib/lang';
 import { translate } from './translate';
-import { getModels, listModels } from './models';
+import { getModels, listModels } from './lib/translation-model';
 
 const validOutputFormats = ['video', 'srt', 'vtt'];
 
@@ -70,7 +70,7 @@ program
         console.error("error: no models are available.");
         process.exit(1);
       }
-      options.model = (models.length > 0 ? models[0]!.name : '');
+      options.model = (models.length > 0 ? models[0] : '');
     }
 
     await translate(file, options.output, {
