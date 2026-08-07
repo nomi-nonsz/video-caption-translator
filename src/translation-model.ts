@@ -1,6 +1,3 @@
-import { Ollama } from 'ollama'
-
-import 'dotenv/config';
 import {
   Cue,
   CueChunk,
@@ -11,6 +8,7 @@ import {
 import { getLanguageName } from './lang';
 import { buildMessages, SCHEMA, SYSTEM_PROMPT } from './prompt';
 import Model from './model';
+import { Ollama } from 'ollama';
 
 const ollama = ollamaInit();
 
@@ -25,34 +23,42 @@ function ollamaInit() {
 }
 
 const client = new Model({
+  ollama: {
+    host: process.env.OLLAMA_HOST,
+    apiKey: process.env.OLLAMA_API_KEY,
+  },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY ?? ''
+  },
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY ?? ''
+  },
   scheme: SCHEMA
 });
 
 export async function getModels() {
-  const res = await ollama.list();
-  return res.models;
+  const models = await client.list();
+  return models;
 }
 
 export async function listModels() {
-  const models = (await getModels()).sort((a, b) => a.name.localeCompare(b.name));
+  const models = (await getModels());
 
   console.log("List models:");
   for (const model of models) {
-    console.log(`- ${model.name}`);
+    console.log(`- ${model}`);
   }
 }
 
 export async function translateChunkTest(chunk: CueChunk, model: string, previousCues: CueShort[], options: TranslateParams) {
-  const prompt = [
-    `target_language: ${options.targetLang}`,
-    // `domain: `
-    `tone: ${options.tone}`,
-    previousCues.length > 0 ? `Previous translated cues:\n${JSON.stringify(previousCues)}` : '',
-    'Translate this cue array:',
-    JSON.stringify(chunk)
-  ].join("\n");
+  const messages = buildMessages({
+    chunk,
+    previousCues,
+    targetLang: options.targetLang,
+    tone: options.tone,
+  });
 
-  console.log(prompt);
+  console.log(messages);
   
   await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -77,10 +83,11 @@ export async function translateChunk(chunk: CueChunk, model: string, previousCue
     think: false
   })
 
-  // console.log(res);
-  console.log(JSON.parse(res?.message.content || ''));
+  const cues = JSON.parse(res.message.content);
 
-  return JSON.parse(res.response) || [];
+  console.log(cues);
+
+  return (cues.cues ?? cues) || [];
 }
 
 export async function translateAllChunks(chunks: CueChunk[], model: string, options: TranslateParams) {
@@ -92,7 +99,7 @@ export async function translateAllChunks(chunks: CueChunk[], model: string, opti
 
     for (const chunk of chunks) {
       console.log(`[video-caption-translator] [${Math.floor((i/chunks.length) * 100)}/100] Translating cue ${chunk[0]?.index}-${chunk[chunk.length-1]?.index}`);
-      const translated = (await translateChunkTest(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
+      const translated = (await translateChunk(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
       results = [...results, ...translated];
       previousCues = translated.slice(-4).map((cue) => ({
         index: cue.index,

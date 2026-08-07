@@ -70,7 +70,7 @@ program
         console.error("error: no models are available.");
         process.exit(1);
       }
-      options.model = (models.length > 0 ? models[0]!.name : '');
+      options.model = (models.length > 0 ? models[0] : '');
     }
 
     await translate(file, options.output, {

@@ -1,4 +1,6 @@
+import OpenAI from "openai";
 import { CueChunk, CueShort, Message, TranslateParams } from "./types";
+import Anthropic from "@anthropic-ai/sdk";
 
 export const SYSTEM_PROMPT = `You are a professional subtitle translation engine.
 Your ONLY job is to translate the "text" field of each cue, without altering the data structure index, start, end, cue count, or cue order.
@@ -35,25 +37,34 @@ it with your best possible translation attempt — never skip or leave a cue
 empty.`;
 
 export const SCHEMA = {
-  type: 'array',
-  items: {
-    type: 'object',
-    properties: {
-      index: {
-        type: 'number'
+  type: 'object',
+  properties: {
+    cues: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          index: {
+            type: 'number'
+          },
+          start: {
+            type: 'number'
+          },
+          end: {
+            type: 'number'
+          },
+          text: {
+            type: 'string'
+          }
+        },
+        required: ['index', 'start', 'end', 'text'],
+        additionalProperties: false
       },
-      start: {
-        type: 'number'
-      },
-      end: {
-        type: 'number'
-      },
-      text: {
-        type: 'string'
-      }
+      additionalProperties: false
     },
-    required: ['index', 'start', 'end', 'text']
-  }
+  },
+  additionalProperties: false,
+  required: ['cues']
 }
 
 type BuildPromptOptions = {
@@ -64,7 +75,7 @@ type BuildPromptOptions = {
 export function buildMessages(options: BuildPromptOptions) {
   const messages: Message[] = [];
   const prompt = [
-    options.sourceLang ? options.sourceLang : '',
+    // options.sourceLang ? options.sourceLang : '',
     `target_language: ${options.targetLang}`,
     `tone: ${options.tone}`,
     'Translate this cue array:',

@@ -5,7 +5,7 @@ import {
 } from './types';
 import { fetch } from 'bun';
 
-// abstraction layer shit
+// rewrite abstraction layer shit
 export default class Model {
   private config: ModelConfig;
 
@@ -36,7 +36,8 @@ export default class Model {
   }
 
   private async fetchGenerate(url: string, headers: HeadersInit, body: any) {
-    delete body.format;
+    // console.log(JSON.stringify(body, null, 2));
+    // process.exit(0);
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -117,11 +118,25 @@ export default class Model {
         Authorization: 'Bearer ' + config.ollama?.apiKey
       };
       try {
+        const messages: Message[] = []
+        
+        if (request.system) {
+          messages.push({
+            role: 'system',
+            content: request.system
+          })
+        }
+
+        messages.push(...request.messages);
+        delete request.system;
+
         const response = await this.fetchGenerate(`${this.ollamaBaseUrl}/api/chat`, headers, {
           ...request,
           model,
+          messages,
           stream: false,
-          format: this.config.scheme ?? 'text'
+          think: request.think ? 'medium' : 'low',
+          format: this.config.scheme ? 'json' : 'text'
         });
 
         const { message } = response;
@@ -133,9 +148,8 @@ export default class Model {
         };
       } catch (err) {
         console.error(err);
-        console.error(`failed to generate ollama response`);
+        throw new Error("failed to generate ollama response");
       }
-      return;
     }
 
     if (provider == 'openai')  {
@@ -162,6 +176,9 @@ export default class Model {
             type: 'text',
           }
         },
+        reasoning: {
+          effort: request.think ? 'medium' : 'low'
+        },
         stream: false
       }
       try {
@@ -176,9 +193,8 @@ export default class Model {
         };
       } catch (err) {
         console.error(err);
-        console.error(`failed to generate openai response`);
+        throw new Error("failed to generate openai response");
       }
-      return;
     }
 
     if (provider == 'anthropic') {
@@ -197,7 +213,10 @@ export default class Model {
             }
           }) : {},
           stream: false,
-          max_tokens: 1280
+          max_tokens: 1280,
+          thinking: {
+            type: 'disabled',
+          }
         }
         if (request.system) body.system = request.system
         const response = await this.fetchGenerate(`${this.anthropicBaseUrl}/v1/messages`, headers, body);
@@ -210,9 +229,8 @@ export default class Model {
         };
       } catch (err) {
         console.error(err);
-        console.error(`failed to generate anthropic response`);
+        throw new Error("failed to generate anthropic response");
       }
-      return;
     }
 
     throw new Error(`Invalid provider ${provider} on ${request.model}`);
