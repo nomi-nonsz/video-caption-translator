@@ -3,11 +3,11 @@
 import { Command } from 'commander';
 import { input, password } from '@inquirer/prompts';
 
-import { APP_NAME, APP_VERSION, ConfigMap, ConfigType, resetConfig, updateConfig } from './lib/config';
+import { APP_NAME, APP_VERSION, ConfigMap, ConfigType, getConfig, resetConfig, updateConfig } from './lib/config';
 import { AVAILABLE_LANG, listSubs } from './lib/lang';
 import { translate } from './translate';
 import { getModels, listModels } from './lib/translation-model';
-import { KeyConfig, resetKeys, saveKeys } from './lib/keys';
+import { isKeyExist, KeyConfig, resetKeys, saveKeys } from './lib/keys';
 
 const validOutputFormats = ['video', 'srt', 'vtt'];
 
@@ -104,6 +104,14 @@ program
       process.exit(0);
     }
 
+    async function promptKey(message: string, provider: keyof KeyConfig) {
+      const isSet = await isKeyExist(provider);
+      const key = await password({
+        message: [message, isSet ? ' (✔): ' : ': '].join('')
+      });
+      keys.set(provider, key);
+    }
+
     console.log("press enter to skip if you don't want to set specific config");
 
     const ollamaHost = await input({
@@ -112,28 +120,9 @@ program
 
     config.set('ollamaHost', ollamaHost);
 
-    const ollamaKey = await password({
-      message: "Ollama API Key: ",
-    });
-
-    keys.set("ollama", ollamaKey);
-
-    const openaiKey = await password({
-      message: "OpenAI API Key: ",
-    });
-
-    keys.set("openai", openaiKey);
-
-    const anthropicKey = await password({
-      message: "Anthropic API Key: ",
-    });
-
-    keys.set("anthropic", anthropicKey);
-    
-    const settedKeys = Array.from(keys.keys())
-      .filter((p: string) => p.length > 0)
-      .join(',');
-    config.set('savedKeys', settedKeys);
+    await promptKey("Ollama API Key", 'ollama');
+    await promptKey("OpenAI API Key", 'openai');
+    await promptKey("Anthropic API Key", 'anthropic');
 
     await updateConfig(config);
     await saveKeys(keys);

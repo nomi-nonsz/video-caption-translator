@@ -7,10 +7,9 @@ export const APP_VERSION = 'v1.0.1';
 
 export type ConfigType = {
   ollamaHost: string
-  savedKeys: string[]
 }
 
-const CONFIG_PROPS: (keyof ConfigType)[] = ['ollamaHost', 'savedKeys'];
+const CONFIG_PROPS: (keyof ConfigType)[] = ['ollamaHost'];
 
 export class ConfigMap<K, V> extends Map implements Map<K, V> {
   set(key: K, value: V): this {

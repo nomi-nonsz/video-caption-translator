@@ -1,6 +1,9 @@
-import { confirm, password } from '@inquirer/prompts';
+import path from 'path';
+import fs from 'fs/promises'
+import { confirm } from '@inquirer/prompts'
+
 import keytar from "keytar";
-import { APP_NAME, getConfig, getPath } from './config';
+import { APP_NAME, getDir } from './config';
 
 const TIMEOUT = 15000;
 
@@ -40,15 +43,25 @@ export async function getKeyrings() {
   return keys;
 }
 
-export async function saveToJson(keys: Map<keyof KeyConfig, string>) {
-  const configPath = getPath();
-  const config = await getConfig();
-  const newConfig = {
-    ...config,
-    keys: Object.fromEntries(keys)
-  };
+// genuinely hate keytar.getPassword
+export async function isKeyExist(provider: keyof KeyConfig) {
+  try {
+    const key = await keytar.getPassword(APP_NAME, `${provider}ApiKey`);
+    if (key != null)
+      return true;
+    else
+      return false;
+  } catch (e) {
+    return false;
+  }
+}
 
-  await Bun.file(configPath).write(JSON.stringify(newConfig, null, 2));
+export async function saveToJson(keys: Map<keyof KeyConfig, string>) {
+  const configDir = getDir();
+  const keyPath = path.join(configDir, '.keys.json');
+  const json = JSON.stringify(Object.fromEntries(keys), null, 2);
+
+  await fs.writeFile(keyPath, json, { encoding: 'utf-8', mode: '0o0644' });
 }
 
 export async function saveKeys(keys: Map<keyof KeyConfig, string>) {
@@ -63,7 +76,10 @@ export async function saveKeys(keys: Map<keyof KeyConfig, string>) {
 }
 
 export async function resetKeys() {
-  for (const provider of KEY_PROPS) {
-    await keytar.deletePassword(APP_NAME, `${provider}ApiKey`);
-  }
+  try {
+    for (const provider of KEY_PROPS) {
+      await keytar.deletePassword(APP_NAME, `${provider}ApiKey`);
+    }
+    return true;
+  } catch (e) { return false }
 }
