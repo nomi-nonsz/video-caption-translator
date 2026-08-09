@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { AVAILABLE_LANG, listSubs } from './lib/lang';
 import { translate } from './translate';
 import { getModels, listModels } from './lib/translation-model';
+import { startConfig } from './config';
 
 const validOutputFormats = ['video', 'srt', 'vtt'];
 
@@ -84,5 +85,10 @@ program
       }
     });
   })
+
+program
+  .command("config")
+  .description("set configuration")
+  .action(startConfig)
 
 program.parse();
