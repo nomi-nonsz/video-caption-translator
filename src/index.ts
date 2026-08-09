@@ -1,18 +1,21 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 import { Command } from 'commander';
+import { input, password } from '@inquirer/prompts';
+
+import { APP_NAME, APP_VERSION, ConfigMap, ConfigType, resetConfig, updateConfig } from './lib/config';
 import { AVAILABLE_LANG, listSubs } from './lib/lang';
 import { translate } from './translate';
 import { getModels, listModels } from './lib/translation-model';
-import { startConfig } from './config';
+import { KeyConfig, resetKeys, saveKeys } from './lib/keys';
 
 const validOutputFormats = ['video', 'srt', 'vtt'];
 
 const program = new Command();
 
 program
-  .description('video-caption-translator: Translate video caption to any language with AI!')
-  .version('1.0.1')
+  .description(`${APP_NAME}: Translate video caption to any language with AI!`)
+  .version(APP_VERSION)
   .option("-l, --lang <language>", "pick the target language to translate", "en")
   .option("-t, --type <type>", "output type. 'video', 'srt', 'vtt'", "video")
   .option("-o, --output <path>", "output of translated caption")
@@ -88,7 +91,56 @@ program
 
 program
   .command("config")
-  .description("set configuration")
-  .action(startConfig)
+  .description("setup configuration")
+  .option("--reset", "reset configuration")
+  .action(async (_, options) => {
+    const keys = new ConfigMap<keyof KeyConfig, string>();
+    const config = new ConfigMap<keyof ConfigType, string>();
+
+    if (options.parent.args.find((a: string) => a == "--reset")) {
+      await resetConfig();
+      await resetKeys();
+      console.log("config resetted");
+      process.exit(0);
+    }
+
+    console.log("press enter to skip if you don't want to set specific config");
+
+    const ollamaHost = await input({
+      message: "Ollama base url (default: http://localhost:11434 or https://ollama.com)"
+    })
+
+    config.set('ollamaHost', ollamaHost);
+
+    const ollamaKey = await password({
+      message: "Ollama API Key: ",
+    });
+
+    keys.set("ollama", ollamaKey);
+
+    const openaiKey = await password({
+      message: "OpenAI API Key: ",
+    });
+
+    keys.set("openai", openaiKey);
+
+    const anthropicKey = await password({
+      message: "Anthropic API Key: ",
+    });
+
+    keys.set("anthropic", anthropicKey);
+    
+    const settedKeys = Array.from(keys.keys())
+      .filter((p: string) => p.length > 0)
+      .join(',');
+    config.set('savedKeys', settedKeys);
+
+    await updateConfig(config);
+    await saveKeys(keys);
+
+    console.log("config saved!");
+
+    process.exit(0);
+  })
 
 program.parse();
