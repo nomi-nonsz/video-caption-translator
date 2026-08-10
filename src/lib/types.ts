@@ -15,7 +15,10 @@ export type TranslateParams = {
   sourceLang?: string,
   targetLang: string,
   tone: TranslateTone,
-  domain?: string
+  domain?: string,
+  temperature?: number,
+  think?: boolean,
+  contextSize?: number
 }
 
 export type TranslateOption = {
