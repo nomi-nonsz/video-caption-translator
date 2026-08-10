@@ -114,8 +114,10 @@ program
 
     console.log("press enter to skip if you don't want to set specific config");
 
+    const oldConfig = await getConfig();
+
     const ollamaHost = await input({
-      message: "Ollama base url (default: http://localhost:11434 or https://ollama.com)"
+      message: `Ollama base url (${oldConfig.ollamaHost ? oldConfig.ollamaHost : 'default: http://localhost:11434 or https://ollama.com'})`
     })
 
     config.set('ollamaHost', ollamaHost);

@@ -43,17 +43,20 @@ export async function getKeyrings() {
   return keys;
 }
 
-// genuinely hate keytar.getPassword
-export async function isKeyExist(provider: keyof KeyConfig) {
+export async function getKey(provider: keyof KeyConfig) {
   try {
     const key = await keytar.getPassword(APP_NAME, `${provider}ApiKey`);
-    if (key != null)
-      return true;
-    else
-      return false;
+    return key;
   } catch (e) {
-    return false;
+    const jsonKeys = await Bun.file(path.join(getDir(), '.keys.json')).json();
+    return jsonKeys[provider] as string | undefined ?? null;
   }
+}
+
+// genuinely hate keytar.getPassword
+export async function isKeyExist(provider: keyof KeyConfig) {
+  const key = await getKey(provider);
+  return key !== null;
 }
 
 export async function saveToJson(keys: Map<keyof KeyConfig, string>) {
@@ -61,7 +64,7 @@ export async function saveToJson(keys: Map<keyof KeyConfig, string>) {
   const keyPath = path.join(configDir, '.keys.json');
   const json = JSON.stringify(Object.fromEntries(keys), null, 2);
 
-  await fs.writeFile(keyPath, json, { encoding: 'utf-8', mode: '0o0644' });
+  await fs.writeFile(keyPath, json, { encoding: 'utf-8', mode: 0o600 });
 }
 
 export async function saveKeys(keys: Map<keyof KeyConfig, string>) {

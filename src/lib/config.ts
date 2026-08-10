@@ -38,7 +38,7 @@ export function getPath() {
   return path.join(getDir(), 'config.json');
 }
 
-export async function getConfig() {
+export async function getConfig(): Promise<any> {
   let config = {};
   const path = getPath();
 
