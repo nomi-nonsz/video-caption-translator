@@ -1,10 +1,10 @@
 # video-caption-translator
 
-<center>
-  <img alt="banner" src="./banner.jpg">
-</center>
-
 A command-based AI-powered tool for translating video subtitles.
+
+![banner](./banner.jpg)
+
+_Animation: [Sprite Fright](https://youtu.be/_cMxraX_5RE) by Blender Studio_
 
 ## Overview
 
@@ -14,7 +14,9 @@ Using Ollama as your primary provider lets you easily use models both locally an
 
 # Installation:
 
-| IMPORTANT NOTE: This project depends on `ffmpeg` and `ffprobe`. It is **HIGHLY RECOMMENDED** that you install these tools first.
+> [!IMPORTANT]
+>
+> This project depends on `ffmpeg` and `ffprobe`. It is **HIGHLY RECOMMENDED** that you install these tools first.
 
 For installation, go to [releases page](https://github.com/nomi-nonsz/video-caption-translator/releases) and download the executable binary based on your operating system.
 
@@ -58,7 +60,9 @@ One command works too
 ANTHROPIC_API_KEY=<your-api-key> video-caption-translator --lang en --type video --model anthropic/claude-opus-4-6 mycontent.mkv -o mycontent-translated.mkv
 ```
 
-_**Tip**: Since it's built with Bun, it can automatically load the environment variables in the `.env` file right in your working directory._
+> [!TIP]
+>
+> Since it's built with Bun, it can automatically load the environment variables in the `.env` file right in your working directory.
 
 ## OpenAI and Anthropic models
 
