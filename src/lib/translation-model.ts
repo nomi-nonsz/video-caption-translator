@@ -77,10 +77,10 @@ export async function translateChunk(chunk: CueChunk, model: string, previousCue
     messages,
     model,
     options: {
-      temperature: 0.3
+      temperature: options.temperature,
     },
     system: SYSTEM_PROMPT,
-    think: false
+    think: !!options.think
   })
 
   const cues = JSON.parse(res.message.content);
@@ -91,6 +91,7 @@ export async function translateChunk(chunk: CueChunk, model: string, previousCue
 }
 
 export async function translateAllChunks(chunks: CueChunk[], model: string, options: TranslateParams) {
+  const contextSize = Math.abs(options.contextSize ?? 4);
   let previousCues: CueShort[] = [];
   let results: Cue[] = [];
   let i = 1;
@@ -101,7 +102,7 @@ export async function translateAllChunks(chunks: CueChunk[], model: string, opti
       console.log(`[video-caption-translator] [${Math.floor((i/chunks.length) * 100)}/100] Translating cue ${chunk[0]?.index}-${chunk[chunk.length-1]?.index}`);
       const translated = (await translateChunk(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
       results = [...results, ...translated];
-      previousCues = translated.slice(-4).map((cue) => ({
+      previousCues = translated.slice(-contextSize).map((cue) => ({
         index: cue.index,
         text: cue.text
       }));

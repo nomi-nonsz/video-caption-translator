@@ -135,7 +135,7 @@ export default class Model {
           model,
           messages,
           stream: false,
-          think: request.think ? 'medium' : 'low',
+          think: request.think ? 'high' : 'low',
           format: this.config.scheme ? 'json' : 'text'
         });
 
@@ -177,12 +177,13 @@ export default class Model {
           }
         },
         reasoning: {
-          effort: request.think ? 'medium' : 'low'
+          effort: request.think ? 'high' : 'low'
         },
         stream: false
       }
+      if (request.system) body.instructions = request.system;
+      if (request.options.temperature) body.temperature = request.options.temperature
       try {
-        if (request.system) body.instructions = request.system;
         const response = await this.fetchGenerate(`${this.openaiBaseUrl}/v1/responses`, headers, body);
         const content = response.output.filter((c: any) => c.type == 'message')[0];
         return {
@@ -215,7 +216,7 @@ export default class Model {
           stream: false,
           max_tokens: 1280,
           thinking: {
-            type: 'disabled',
+            type: request.think ? 'adaptive' : 'disabled',
           }
         }
         if (request.system) body.system = request.system
