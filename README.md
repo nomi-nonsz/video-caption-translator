@@ -1,12 +1,16 @@
 # video-caption-translator
 
+<center>
+  <img alt="banner" src="./banner.jpg">
+</center>
+
 A command-based AI-powered tool for translating video subtitles.
 
 ## Overview
 
-`video-caption-translator` is a command-line tool build with bun and typescript. Uses Ollama backend to translate video subtitles. It reads subtitles from a video and translating the cues, and can output translated captions as standalone subtitle files or embed soft subtitles back into the video.
+`video-caption-translator` is a command-line tool build with bun and typescript. It reads subtitles from a video and translating the cues, and can output translated captions as standalone subtitle files or embed soft subtitles back into the video.
 
-Currently it uses ollama as a backends for testing because we broke af
+Using Ollama as your primary provider lets you easily use models both locally and in the cloud.
 
 # Installation:
 
@@ -17,19 +21,52 @@ For installation, go to [releases page](https://github.com/nomi-nonsz/video-capt
 # Usage
 
 ```bash
-video-caption-translator --lang en --type video mycontent.mkv -o mycontent-translated.mkv
+video-caption-translator --lang en --type video --model openai/gpt-5-mini mycontent.mkv -o mycontent-translated.mkv
 ```
 
 Specify the options
 
 ```bash
-video-caption-translator -l sp -t srt -s 20 -m gemma4 --tone casual mycontent.mkv -o mycontent-translated.srt
+video-caption-translator -l sp -t srt -s 20 -m ollama/gemma4 --tone casual --context-size 10 mycontent.mkv -o mycontent-translated.srt
 ```
 
 List connected models
 
 ```bash
 video-caption-translator --list-models
+```
+
+# Configuration
+
+Configuration can be set via environment variables
+
+On Linux/MacOS:
+
+```bash
+export OPENAI_API_KEY=<your-api-key>
+```
+
+Or Windows (powershell):
+
+```powershell
+$env:OPENAI_API_KEY=<your-api-key>
+```
+
+One command works too
+
+```bash
+ANTHROPIC_API_KEY=<your-api-key> video-caption-translator --lang en --type video --model anthropic/claude-opus-4-6 mycontent.mkv -o mycontent-translated.mkv
+```
+
+_**Tip**: Since it's built with Bun, it can automatically load the environment variables in the `.env` file right in your working directory._
+
+## OpenAI and Anthropic models
+
+By default, this video-caption-translator uses Ollama as its main provider. Starting with version v1.1.0, you can use models from OpenAI and Anthropic by setting their API keys
+
+```bash
+export OPENAI_API_KEY=<your-api-key>
+export ANTHROPIC_API_KEY=<your-api-key>
 ```
 
 ## Ollama Cloud
@@ -40,10 +77,10 @@ If you using ollama cloud
 export OLLAMA_API_KEY=<your-api-key>
 ```
 
-or
+Third-party or self-hosted ollama:
 
 ```bash
-OLLAMA_API_KEY=<your-api-key> video-caption-translator --type video -o mycontent-translated.mkv mycontent.mkv
+export OLLAMA_HOST=https://ollama.example.com
 ```
 
 ## Available languages

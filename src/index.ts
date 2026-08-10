@@ -46,7 +46,7 @@ const optionParser = {
 
 program
   .description('video-caption-translator: Translate video caption to any language with AI!')
-  .version('1.0.1')
+  .version('v1.1.0')
   .option("-l, --lang <language>", "pick the target language to translate", optionParser.lang, "en")
   .addOption(new Option("-t, --type <type>", "output type").choices(validOutputFormats).default('video'))
   .option("-o, --output <path>", "output of translated subtitles")
@@ -56,7 +56,7 @@ program
   .option("--think", "enhance higher thinking and model reasoning, translation process will take longer")
   .option("--temperature <float>", "control the response randomness (default: 0.3)", optionParser.temperature)
   .option("--tone <tone>", "pick the tone for translate", "neutral")
-  .option("--context-size <number>", "how many cues were previously used as context", optionParser.contextSize, "4")
+  .option("--context-size <number>", "how many cues were previously used as context", optionParser.contextSize, "5")
   .option("--source-lang <language>", "pick the source language, default: auto-detected", optionParser.sourceLang)
   .optionsGroup('Listings:')
   .option("--list-subs", "list all available subtitles")
