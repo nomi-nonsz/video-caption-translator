@@ -1,4 +1,3 @@
-import { log } from './logger';
 import {
   ModelConfig,
   GenerateRequest,

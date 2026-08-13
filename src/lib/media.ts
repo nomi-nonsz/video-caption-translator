@@ -21,15 +21,25 @@ export function getVideoExt(mime: string) {
 }
 
 export async function listSubStreams(path: string) {
-  const proc = await execa('ffprobe', [
-    '-v', 'error',
-    '-select_streams', 's',
-    '-show_entries', 'stream=index,codec_name,codec_long_name:stream_tags=language,title:stream_disposition',
-    '-of', 'json',
-    path
-  ]);
-  const output = JSON.parse(proc.stdout);
-  return output.streams || [];
+  try {
+    const proc = await execa('ffprobe', [
+      '-v', 'error',
+      '-select_streams', 's',
+      '-show_entries', 'stream=index,codec_name,codec_long_name:stream_tags=language,title:stream_disposition',
+      '-of', 'json',
+      path
+    ]);
+    const output = JSON.parse(proc.stdout);
+    return output.streams || [];
+  } catch (err) {
+    if (err instanceof ExecaError) {
+      log.error(err.shortMessage);
+      log.error(`[video-caption-translator] Error while trying to get subtitle streams`);
+      process.exit(err.exitCode || 1);
+    }
+    log.errorRaw(err);
+    process.exit(1);
+  }
 }
 
 export function getSub(index: number, stream: any) {
@@ -43,9 +53,19 @@ export function getSub(index: number, stream: any) {
  * @param streamIndex The stream index
  */
 export async function getSrtContent(inpath: string, outpath: string, streamIndex: number) {
-  await execa("ffmpeg", ["-y", "-i", inpath, "-map", `0:${streamIndex}`, outpath]);
-  const content = await Bun.file(outpath).text();
-  return content;
+  try {
+    await execa("ffmpeg", ["-y", "-i", inpath, "-map", `0:${streamIndex}`, outpath]);
+    const content = await Bun.file(outpath).text();
+    return content;
+  } catch (err) {
+    if (err instanceof ExecaError) {
+      log.error(err.shortMessage);
+      log.error(`[video-caption-translator] Error while trying to get subtitle streams`);
+      process.exit(err.exitCode || 1);
+    }
+    log.errorRaw(err);
+    process.exit(1);
+  }
 }
 
 export function parseToCue(srt: string): Cue[] {
@@ -107,11 +127,12 @@ export async function embedToVideo(srt: string, lang: string, inpath: string, ou
     ]); 
   } catch (err) {
     if (err instanceof ExecaError) {
-      log.info(err.command);
-      log.errorRaw(err.stderr);
+      log.error(err.shortMessage);
       log.error(`[video-caption-translator] Error while trying to embed subtitle`);
-      process.exit(1);
+      process.exit(err.exitCode || 1);
     }
+    log.errorRaw(err);
+    process.exit(1);
   }
 
   await Bun.file(subPath).delete();

@@ -102,7 +102,7 @@ export async function translateAllChunks(chunks: CueChunk[], model: string, opti
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]!;
       log.info(`[${Math.floor((i/chunks.length) * 100)}/100] Translating cue ${chunk[0]?.index}-${chunk[chunk.length-1]?.index}`);
-      const translated = (await translateChunk(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
+      const translated = (await translateChunkTest(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
       results = [...results, ...translated];
       previousCues = translated.slice(-contextSize).map((cue) => ({
         index: cue.index,
