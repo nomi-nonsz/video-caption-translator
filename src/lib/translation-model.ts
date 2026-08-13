@@ -9,6 +9,7 @@ import { getLanguageName } from './lang';
 import { buildMessages, SCHEMA, SYSTEM_PROMPT } from './prompt';
 import Model from './model';
 import { Ollama } from 'ollama';
+import { log } from './logger';
 
 const ollama = ollamaInit();
 
@@ -100,7 +101,7 @@ export async function translateAllChunks(chunks: CueChunk[], model: string, opti
     // can't believe i had been using too much for of
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]!;
-      console.log(`[video-caption-translator] [${Math.floor(((i+1)/chunks.length) * 100)}/100] Translating cue ${chunk[0]?.index}-${chunk[chunk.length-1]?.index}`);
+      log.info(`[${Math.floor((i/chunks.length) * 100)}/100] Translating cue ${chunk[0]?.index}-${chunk[chunk.length-1]?.index}`);
       const translated = (await translateChunkTest(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
       results = [...results, ...translated];
       previousCues = translated.slice(-contextSize).map((cue) => ({
@@ -109,8 +110,10 @@ export async function translateAllChunks(chunks: CueChunk[], model: string, opti
       }));
     }
   } catch (err) {
-    console.error(err);
-    console.error("[video-caption-translator] Error: failed to translating the subtitle");
+    if (err instanceof Error) {
+      log.error(err.message);
+    }
+    log.error("failed to translating the subtitle");
     process.exit(1);
   } finally {
     return results;
