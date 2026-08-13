@@ -11,6 +11,7 @@ import { checkFile } from "./lib/utils";
 import {
   embedToVideo,
   getSrtContent,
+  getSub,
   getVideoExt,
   listSubStreams,
   parseSub,
@@ -49,6 +50,7 @@ export async function translate(inpath: string, outpath: string, option: Transla
 
   const subList = await listSubStreams(inpath);
   const streamIndex = getLanguageIndex(subList);
+  const streamMetadata = getSub(streamIndex, subList);
 
   if (streamIndex < 0) {
     console.error("[video-caption-translator] Failed to extract subtitle: no subtitles found");
@@ -81,7 +83,9 @@ export async function translate(inpath: string, outpath: string, option: Transla
   if (format == 'srt' || format == 'vtt') {
     await Bun.write(outpath, translated);
   } else {
-    await embedToVideo(translated, params.targetLang, inpath, outpath);
+    await embedToVideo(translated, params.targetLang, inpath, outpath, {
+      disposition: Object.entries(streamMetadata.disposition)
+    });
   }
 
   console.log(`[video-caption-translator] Saved at ${outpath}.`);
