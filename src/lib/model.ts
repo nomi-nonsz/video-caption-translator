@@ -1,3 +1,4 @@
+import { log } from './logger';
 import {
   ModelConfig,
   GenerateRequest,
@@ -5,13 +6,35 @@ import {
 } from './types';
 import { fetch } from 'bun';
 
+type FetchErrorProps = {
+  code: string,
+  url: string,
+  response?: Response,
+  json?: unknown
+}
+
+class FetchError extends Error {
+  public url: string;
+  public code: string;
+  public response?: Response;
+  public json?: any;
+  
+  constructor(message: string, options: FetchErrorProps) {
+    super(message)
+    this.code = options.code;
+    this.url = options.url;
+    if (options.response) this.response = options.response;
+    if (options.json) this.json = options.json;
+  }
+}
+
 // rewrite abstraction layer shit
 export default class Model {
   private config: ModelConfig;
 
-  private openaiBaseUrl = 'https://api.openai.com';
-  private anthropicBaseUrl = 'https://api.anthropic.com';
-  private ollamaBaseUrl = 'https://localhost:11434';
+  protected openaiBaseUrl = 'https://api.openai.com';
+  protected anthropicBaseUrl = 'https://api.anthropic.com';
+  protected ollamaBaseUrl = 'https://localhost:11434';
 
   public constructor(config: ModelConfig) {
     this.config = config;
@@ -19,7 +42,7 @@ export default class Model {
     if (config.ollama?.host || config.ollama?.apiKey) this.ollamaBaseUrl = config.ollama.host || 'https://ollama.com';
   }
 
-  private async fetchList(url: string, headers: HeadersInit) {
+  protected async fetchList(url: string, headers: HeadersInit) {
     const res = await fetch(url, {
       method: "GET",
       headers
@@ -35,26 +58,38 @@ export default class Model {
     return data;
   }
 
-  private async fetchGenerate(url: string, headers: HeadersInit, body: any) {
+  protected async fetchGenerate(url: string, headers: HeadersInit, body: any) {
     // console.log(JSON.stringify(body, null, 2));
     // process.exit(0);
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers
-      },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      throw {
-        status: res.statusText,
-        statusCode: res.status,
-        response: await res.json()
-      };
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        throw new FetchError(`failed to fetch ${url}: ${res.status} ${res.statusText}`, {
+          url,
+          code: 'FailedFetch',
+          response: res,
+          json: await res.json()
+        })
+      }
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      // @ts-ignore
+      if (err instanceof Error && err.code && err.code === 'ConnectionRefused') {
+        throw new FetchError(`Unable to connect ${url}. Is the computer able to access the url?`, {
+          url,
+          code: 'ConnectionRefused'
+        });
+      }
+      throw err;
     }
-    const data = await res.json();
-    return data;
   }
   
   public async list() {
@@ -147,8 +182,13 @@ export default class Model {
           } as Message
         };
       } catch (err) {
-        console.error(err);
-        throw new Error("failed to generate ollama response");
+        if (err instanceof FetchError) {
+          const url = new URL(err.url);
+          if (err.code == 'ConnectionRefused' && url.hostname == 'localhost')
+            throw new Error('unable to access ollama instance. is ollama daemon running?');
+          throw new Error(err.message);
+        }
+        throw err;
       }
     }
 
@@ -193,8 +233,13 @@ export default class Model {
           } as Message
         };
       } catch (err) {
-        console.error(err);
-        throw new Error("failed to generate openai response");
+        if (err instanceof FetchError) {
+          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+            throw new Error(err.json.error.message);
+          }
+          throw new Error(err.message);
+        }
+        throw err;
       }
     }
 
@@ -229,11 +274,16 @@ export default class Model {
           } as Message
         };
       } catch (err) {
-        console.error(err);
-        throw new Error("failed to generate anthropic response");
+        if (err instanceof FetchError) {
+          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+            throw new Error(`${err.message}\n${err.json.error.message}`);
+          }
+          throw new Error(err.message);
+        }
+        throw err;
       }
     }
 
-    throw new Error(`Invalid provider ${provider} on ${request.model}`);
+    throw new Error(`Invalid provider "${provider}" on ${request.model}`);
   }
 }

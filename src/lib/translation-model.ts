@@ -110,7 +110,9 @@ export async function translateAllChunks(chunks: CueChunk[], model: string, opti
       }));
     }
   } catch (err) {
-    log.errorRaw(err);
+    if (err instanceof Error) {
+      log.error(err.message);
+    }
     log.error("failed to translating the subtitle");
     process.exit(1);
   } finally {

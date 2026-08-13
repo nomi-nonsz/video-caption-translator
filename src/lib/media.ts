@@ -2,6 +2,7 @@ import { execa, ExecaError } from "execa";
 import { Cue } from "./types";
 import { type NodeList, parseSync, stringifySync } from "subtitle";
 import { getLanguageName, toThreeLetterCode } from "./lang";
+import { log } from "./logger";
 
 export const SUPPORTED_CONTAINER = [,
   'video/x-matroska', // mkv
@@ -106,9 +107,9 @@ export async function embedToVideo(srt: string, lang: string, inpath: string, ou
     ]); 
   } catch (err) {
     if (err instanceof ExecaError) {
-      console.log(err.command);
-      console.error(err.stderr);
-      console.error(`[video-caption-translator] Error while trying to embed subtitle`);
+      log.info(err.command);
+      log.errorRaw(err.stderr);
+      log.error(`[video-caption-translator] Error while trying to embed subtitle`);
       process.exit(1);
     }
   }
