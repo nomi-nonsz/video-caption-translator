@@ -18,6 +18,7 @@ import {
   parseToCue,
   SUPPORTED_CONTAINER
 } from "./lib/media";
+import { log } from "./lib/logger";
 
 function splitToChunks(cues: Cue[], size: number) {
   const chunks: CueChunk[] = [];
@@ -32,45 +33,45 @@ export async function translate(inpath: string, outpath: string, option: Transla
   const subName = `${crypto.randomUUID()}-${Date.now()}`;
   const subPath = `/tmp/${subName}.srt`;
 
-  console.log(`[video-caption-translator] Using model ${option.model}.`);
+  log.info(`Using model ${option.model}.`);
 
   if (!(await checkFile(inpath))) {
-    console.error(`[video-caption-translator] Error: Cannot access ${inpath}. Either it's not accessable or it doesn't exist`);
+    log.error(`Error: Cannot access ${inpath}. Either it's not accessable or it doesn't exist`);
     process.exit(1);
   }
 
   const containerMIME = Bun.file(inpath).type;
 
   if (!SUPPORTED_CONTAINER.includes(containerMIME)) {
-    console.error(`[video-caption-translator] Error: ${inpath} is not supported with available formats: mp4, mkv, webm`);
+    log.error(`Error: ${inpath} is not supported with available formats: mp4, mkv, webm`);
     process.exit(1);
   }
 
-  console.log("[video-caption-translator] Obtaining available source language...");
+  log.info("Obtaining available source language...");
 
   const subList = await listSubStreams(inpath);
   const streamIndex = getLanguageIndex(subList);
   const streamMetadata = getSub(streamIndex, subList);
 
   if (streamIndex < 0) {
-    console.error("[video-caption-translator] Failed to extract subtitle: no subtitles found");
+    log.error("Failed to extract subtitle: no subtitles found");
     process.exit(1);
   }
 
-  console.log("[video-caption-translator] Parsing to cue...");
+  log.info("Parsing to cue...");
 
   const srtContent = await getSrtContent(inpath, subPath, streamIndex);
   const cues = parseToCue(srtContent);
   const chunks = splitToChunks(cues, chunkSize);
 
-  console.log("[video-caption-translator] Begin Translating...");
+  log.info("Begin Translating...");
 
-  // console.log(chunks.map(c => c.map(({ index, text }) => ({ index, text }))))
+  // log.log(chunks.map(c => c.map(({ index, text }) => ({ index, text }))))
 
   const translatedCues = await translateAllChunks(chunks, option.model, params);
   await Bun.file(subPath).delete();
 
-  console.log("[video-caption-translator] Subtitle translation completed. Saving...");
+  log.info("Subtitle translation completed. Saving...");
 
   const subFormat: 'WebVTT' | 'SRT' = format == 'vtt' ? 'WebVTT' : 'SRT';
   const translated = parseSub(translatedCues, subFormat);
@@ -88,7 +89,7 @@ export async function translate(inpath: string, outpath: string, option: Transla
     });
   }
 
-  console.log(`[video-caption-translator] Saved at ${outpath}.`);
+  log.info(`Saved at ${outpath}.`);
 }
 
 // translate("./sandbox/test-input.mkv", './sandbox/test-output.srt', {
