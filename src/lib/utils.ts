@@ -1,7 +1,10 @@
 import path from 'path';
 import os from 'os'
-import fs from 'fs/promises'
+import fsp from 'fs/promises'
+import fs from 'fs'
+
 import { APP_NAME } from './config';
+import { state } from '../state';
 
 export function getDir() {
   let dir = './';
@@ -21,9 +24,16 @@ export function getPath() {
   return path.join(getDir(), 'config.json');
 }
 
+export function cleanup() {
+  for (const f of Array.from(state.tmpFiles)) {
+    if (fs.existsSync(f))
+      fs.unlinkSync(f);
+  }
+}
+
 export async function checkFile(path: string) {
   try {
-    await fs.access(path, fs.constants.F_OK);
+    await fsp.access(path, fsp.constants.F_OK);
     return true;
   } catch (error) {
     return false;

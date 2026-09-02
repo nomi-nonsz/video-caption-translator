@@ -20,6 +20,7 @@ import {
   SUPPORTED_CONTAINER
 } from "./lib/media";
 import { log } from "./lib/logger";
+import { state } from "./state";
 
 function splitToChunks(cues: Cue[], size: number) {
   const chunks: CueChunk[] = [];
@@ -33,6 +34,7 @@ export async function translate(inpath: string, outpath: string, option: Transla
   const { chunkSize, params, format } = option;
   const subName = `${crypto.randomUUID()}-${Date.now()}`;
   const subPath = path.join(os.tmpdir(), `${subName}.srt`);
+  state.tmpFiles.add(subPath);
 
   log.info(`Using model ${option.model}.`);
 
@@ -71,6 +73,7 @@ export async function translate(inpath: string, outpath: string, option: Transla
 
   const translatedCues = await translateAllChunks(chunks, option.model, params);
   await Bun.file(subPath).delete();
+  state.tmpFiles.delete(subPath);
 
   log.info("Subtitle translation completed. Saving...");
 

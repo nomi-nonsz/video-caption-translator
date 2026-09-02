@@ -7,6 +7,7 @@ import { type NodeList, parseSync, stringifySync } from "subtitle";
 import { Cue } from "./types";
 import { getLanguageName, toThreeLetterCode } from "./lang";
 import { log } from "./logger";
+import { state } from "../state";
 
 export const SUPPORTED_CONTAINER = [,
   'video/x-matroska', // mkv
@@ -98,6 +99,8 @@ type EmbedVideoOpts = {
 export async function embedToVideo(srt: string, lang: string, inpath: string, outpath: string, options?: EmbedVideoOpts) {
   const subPath = path.join(os.tmpdir(), `${crypto.randomUUID()}-${Date.now()}.srt`);
   const extraArgs = [];
+
+  state.tmpFiles.add(subPath);
   
   if (options?.disposition) {
     const dispositions = [];
@@ -140,4 +143,5 @@ export async function embedToVideo(srt: string, lang: string, inpath: string, ou
   }
 
   await Bun.file(subPath).delete();
+  state.tmpFiles.delete(subPath);
 }

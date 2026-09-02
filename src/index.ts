@@ -6,6 +6,7 @@ import * as config from './lib/config';
 import { AVAILABLE_LANG, listSubs } from './lib/lang';
 import { getModels, listModels } from './lib/translation-model';
 import { translate } from './translate';
+import { cleanup } from './lib/utils';
 
 const validOutputFormats = ['video', 'srt', 'vtt'];
 
@@ -119,3 +120,7 @@ program
   })
 
 program.parse();
+
+process.on('SIGINT', () => process.exit(130));
+process.on('SIGTERM', () => process.exit(136));
+process.on('exit', cleanup);
