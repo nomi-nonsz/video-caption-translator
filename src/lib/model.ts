@@ -1,9 +1,10 @@
+import { fetch } from 'bun';
+
 import {
   ModelConfig,
   GenerateRequest,
   Message
 } from './types';
-import { fetch } from 'bun';
 
 type FetchErrorProps = {
   code: string,

@@ -1,6 +1,9 @@
-import OpenAI from "openai";
-import { CueChunk, CueShort, Message, TranslateParams } from "./types";
-import Anthropic from "@anthropic-ai/sdk";
+import {
+  CueChunk,
+  CueShort,
+  Message,
+  TranslateParams
+} from "./types";
 
 export const SYSTEM_PROMPT = `You are a professional subtitle translation engine.
 Your ONLY job is to translate the "text" field of each cue, without altering the data structure index, start, end, cue count, or cue order.
@@ -37,35 +40,36 @@ it with your best possible translation attempt — never skip or leave a cue
 empty.`;
 
 export const SCHEMA = {
-  type: 'object',
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  type: "object",
   properties: {
     cues: {
-      type: 'array',
+      type: "array",
       items: {
-        type: 'object',
+        type: "object",
         properties: {
           index: {
-            type: 'number'
+            type: "number",
           },
           start: {
-            type: 'number'
+            type: "number",
           },
           end: {
-            type: 'number'
+            type: "number",
           },
           text: {
-            type: 'string'
-          }
+            type: "string",
+          },
         },
-        required: ['index', 'start', 'end', 'text'],
-        additionalProperties: false
+        required: ["index", "start", "end", "text"],
+        additionalProperties: false,
       },
-      additionalProperties: false
+      additionalProperties: false,
     },
   },
   additionalProperties: false,
-  required: ['cues']
-}
+  required: ["cues"],
+};
 
 type BuildPromptOptions = {
   previousCues: CueShort[],

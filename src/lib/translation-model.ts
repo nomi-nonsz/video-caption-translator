@@ -5,23 +5,11 @@ import {
   Message,
   TranslateParams
 } from './types';
+
+import Model from './model';
+import { log } from './logger';
 import { getLanguageName } from './lang';
 import { buildMessages, SCHEMA, SYSTEM_PROMPT } from './prompt';
-import Model from './model';
-import { Ollama } from 'ollama';
-import { log } from './logger';
-
-const ollama = ollamaInit();
-
-function ollamaInit() {
-  if (process.env.OLLAMA_HOST || process.env.OLLAMA_API_KEY) {
-    return new Ollama({
-      host: process.env.OLLAMA_HOST || 'https://ollama.com',
-      headers: { Authorization: 'Bearer ' + process.env.OLLAMA_API_KEY },
-    })
-  }
-  return new Ollama();
-}
 
 const client = new Model({
   ollama: {
@@ -102,7 +90,7 @@ export async function translateAllChunks(chunks: CueChunk[], model: string, opti
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]!;
       log.info(`[${Math.floor((i/chunks.length) * 100)}/100] Translating cue ${chunk[0]?.index}-${chunk[chunk.length-1]?.index}`);
-      const translated = (await translateChunkTest(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
+      const translated = (await translateChunk(chunk, model, previousCues, { ...options, targetLang })) as Cue[];
       results = [...results, ...translated];
       previousCues = translated.slice(-contextSize).map((cue) => ({
         index: cue.index,

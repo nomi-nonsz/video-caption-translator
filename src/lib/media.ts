@@ -1,6 +1,10 @@
+import path from "path";
+import os from "os";
+
 import { execa, ExecaError } from "execa";
-import { Cue } from "./types";
 import { type NodeList, parseSync, stringifySync } from "subtitle";
+
+import { Cue } from "./types";
 import { getLanguageName, toThreeLetterCode } from "./lang";
 import { log } from "./logger";
 
@@ -92,7 +96,7 @@ type EmbedVideoOpts = {
 }
 
 export async function embedToVideo(srt: string, lang: string, inpath: string, outpath: string, options?: EmbedVideoOpts) {
-  const subPath = `/tmp/${crypto.randomUUID()}-${Date.now()}.srt`;
+  const subPath = path.join(os.tmpdir(), `${crypto.randomUUID()}-${Date.now()}.srt`);
   const extraArgs = [];
   
   if (options?.disposition) {

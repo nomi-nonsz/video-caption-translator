@@ -1,6 +1,6 @@
-import fs from 'fs/promises'
 import path from 'path';
 import os from 'os'
+import fs from 'fs/promises'
 import { APP_NAME } from './config';
 
 export function getDir() {

@@ -1,4 +1,5 @@
 import path from "path";
+import os from "os";
 
 import type {
   Cue,
@@ -31,7 +32,7 @@ function splitToChunks(cues: Cue[], size: number) {
 export async function translate(inpath: string, outpath: string, option: TranslateOption) {
   const { chunkSize, params, format } = option;
   const subName = `${crypto.randomUUID()}-${Date.now()}`;
-  const subPath = `/tmp/${subName}.srt`;
+  const subPath = path.join(os.tmpdir(), `${subName}.srt`);
 
   log.info(`Using model ${option.model}.`);
 

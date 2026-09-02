@@ -1,9 +1,11 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 import { Command, Option } from 'commander';
+import * as config from './lib/config';
+
 import { AVAILABLE_LANG, listSubs } from './lib/lang';
-import { translate } from './translate';
 import { getModels, listModels } from './lib/translation-model';
+import { translate } from './translate';
 
 const validOutputFormats = ['video', 'srt', 'vtt'];
 
@@ -45,8 +47,8 @@ const optionParser = {
 }
 
 program
-  .description('video-caption-translator: Translate video caption to any language with AI!')
-  .version('v1.1.0')
+  .description(`${config.APP_NAME}: Translate video caption to any language with AI!`)
+  .version(config.APP_VERSION)
   .option("-l, --lang <language>", "pick the target language to translate", optionParser.lang, "en")
   .addOption(new Option("-t, --type <type>", "output type").choices(validOutputFormats).default('video'))
   .option("-o, --output <path>", "output of translated subtitles")
