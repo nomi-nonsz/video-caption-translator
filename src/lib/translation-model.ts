@@ -10,6 +10,7 @@ import Model from './model';
 import { log } from './logger';
 import { getLanguageName } from './lang';
 import { buildMessages, SCHEMA, SYSTEM_PROMPT } from './prompt';
+import chalk from 'chalk';
 
 const client = new Model({
   ollama: {
@@ -21,6 +22,9 @@ const client = new Model({
   },
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY ?? ''
+  },
+  google: {
+    apiKey: process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY ?? ''
   },
   scheme: SCHEMA
 });
@@ -36,6 +40,9 @@ export async function listModels() {
   console.log("List models:");
   for (const model of models) {
     console.log(`- ${model}`);
+  }
+  if (models.filter(m => m.includes('/') && m.split('/')[0] != 'ollama').length > 0) {
+    console.log(chalk.yellow.inverse('\n ! ') + chalk.yellow(" Warning: Some of the models shown may not support text generation, please check the provider's official documentation."));
   }
 }
 

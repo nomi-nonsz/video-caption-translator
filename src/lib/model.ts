@@ -35,6 +35,7 @@ export default class Model {
   protected openaiBaseUrl = 'https://api.openai.com';
   protected anthropicBaseUrl = 'https://api.anthropic.com';
   protected ollamaBaseUrl = 'https://localhost:11434';
+  protected googleBaseUrl = 'https://generativelanguage.googleapis.com';
 
   public constructor(config: ModelConfig) {
     this.config = config;
@@ -59,8 +60,6 @@ export default class Model {
   }
 
   protected async fetchGenerate(url: string, headers: HeadersInit, body: any) {
-    // console.log(JSON.stringify(body, null, 2));
-    // process.exit(0);
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -91,6 +90,17 @@ export default class Model {
       throw err;
     }
   }
+
+  protected isGenerativeModel(name: string): boolean {
+    const words = ['image', 'embedding', 'tts', 'moderation', 'transcribe', 'audio', 'image'];
+
+    for (const exc of words) {
+      if (name.includes(exc))
+        return false;
+    }
+
+    return true;
+  }
   
   public async list() {
     const config = this.config;
@@ -116,6 +126,10 @@ export default class Model {
           Authorization: 'Bearer ' + config.openai.apiKey
         }) as { data: Record<any, string | number>[] };
         for (const m of openaiList.data) {
+          if (typeof m.id != 'string') continue;
+          if (!this.isGenerativeModel(m.id)) continue;
+          if (!(m.id.includes('gpt-') || m.id[0] == 'o'))
+            continue
           modelList.push('openai/'+m.id);
         }
       } catch (err) {
@@ -136,6 +150,25 @@ export default class Model {
       } catch (err) {
         console.error(err);
         console.error('failed to list anthropic models');
+      }
+    }
+
+    if (config.google?.apiKey) {
+      try {
+        const googleList = await this.fetchList(`${this.googleBaseUrl}/v1beta/models?key=${config.google.apiKey}`, {}) as { models: Record<any, string>[] };
+        for (const m of googleList.models) {
+          if (m.name && !(m.name.includes('gemini-') || m.name.includes('gemma-')))
+            continue
+          if (!this.isGenerativeModel(m.name ?? '')) continue;
+
+          let name = m.name;
+          if (name?.includes('/'))
+            name = name.split('/')[1];
+          modelList.push('google/'+name);
+        }
+      } catch (err) {
+        console.error(err);
+        console.error('failed to list google models');
       }
     }
 
@@ -277,6 +310,53 @@ export default class Model {
         if (err instanceof FetchError) {
           if (err.json?.error?.message && typeof err.json.error.message == 'string') {
             throw new Error(`${err.message}\n${err.json.error.message}`);
+          }
+          throw new Error(err.message);
+        }
+        throw err;
+      }
+    }
+
+    if (provider == 'google')  {
+      const headers = {
+        'x-goog-api-key': config.google?.apiKey ?? ''
+      };
+      const body: any = {
+        model,
+        input: request.messages.map(m => ({
+          type: m.role == 'user' ? 'user_input' : 'model_output',
+          content: [
+            {
+              type: 'text',
+              text: m.content
+            }
+          ]
+        })),
+        response_format: {
+          type: 'text',
+          mime_type: 'application/json',
+          schema: this.config.scheme
+        },
+        generation_config: {
+          thinking_level: request.think ? 'high' : 'minimal'
+        },
+        stream: false
+      }
+      if (request.system) body.system_instruction = request.system;
+      try {
+        const response = await this.fetchGenerate(`${this.googleBaseUrl}/v1/interactions`, headers, body);
+        const { steps } = response;
+        const content = steps.filter((s: any) => s.type == "model_output")[0].content;
+        return {
+          message: {
+            role: 'assistant',
+            content: content[0].text
+          } as Message
+        };
+      } catch (err) {
+        if (err instanceof FetchError) {
+          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+            throw new Error(err.json.error.message);
           }
           throw new Error(err.message);
         }

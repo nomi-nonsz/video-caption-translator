@@ -39,6 +39,9 @@ export interface ModelConfig {
     host?: string | undefined;
     apiKey?: string | undefined;
   };
+  google?: {
+    apiKey: string;
+  }
   scheme?: any;
 }
 
