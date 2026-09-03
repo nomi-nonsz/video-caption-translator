@@ -36,6 +36,7 @@ export default class Model {
   protected anthropicBaseUrl = 'https://api.anthropic.com';
   protected ollamaBaseUrl = 'https://localhost:11434';
   protected googleBaseUrl = 'https://generativelanguage.googleapis.com';
+  protected xaiBaseUrl = 'https://api.x.ai';
 
   public constructor(config: ModelConfig) {
     this.config = config;
@@ -169,6 +170,20 @@ export default class Model {
       } catch (err) {
         console.error(err);
         console.error('failed to list google models');
+      }
+    }
+
+    if (config.xai?.apiKey) {
+      try {
+        const xaiList = await this.fetchList(`${this.xaiBaseUrl}/v1/language-models`, {
+          "Authorization": 'Bearer ' + config.xai.apiKey
+        }) as { models: Record<any, string | number>[] };
+        for (const m of xaiList.models) {
+          modelList.push('xai/'+m.id);
+        }
+      } catch (err) {
+        console.error(err);
+        console.error('failed to list anthropic models');
       }
     }
 
@@ -351,6 +366,49 @@ export default class Model {
           message: {
             role: 'assistant',
             content: content[0].text
+          } as Message
+        };
+      } catch (err) {
+        if (err instanceof FetchError) {
+          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+            throw new Error(err.json.error.message);
+          }
+          throw new Error(err.message);
+        }
+        throw err;
+      }
+    }
+
+    if (provider == 'xai')  {
+      const headers = {
+        Authorization: 'Bearer ' + config.xai?.apiKey
+      };
+      const body: any = {
+        model,
+        input: request.messages,
+        text: {
+          format: this.config.scheme ? {
+            type: 'json_schema',
+            name: 'translated_cues',
+            schema: this.config.scheme
+          } : {
+            type: 'text',
+          }
+        },
+        reasoning: {
+          effort: request.think ? 'medium' : 'low'
+        },
+        stream: false
+      }
+      if (request.system) body.instructions = request.system;
+      if (request.options.temperature) body.temperature = request.options.temperature
+      try {
+        const response = await this.fetchGenerate(`${this.xaiBaseUrl}/v1/responses`, headers, body);
+        const content = response.output.filter((c: any) => c.type == 'message')[0];
+        return {
+          message: {
+            role: content.role,
+            content: content.content[0].text
           } as Message
         };
       } catch (err) {

@@ -26,6 +26,9 @@ const client = new Model({
   google: {
     apiKey: process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY ?? ''
   },
+  xai: {
+    apiKey: process.env.XAI_API_KEY ?? process.env.GROK_API_KEY ?? ''
+  },
   scheme: SCHEMA
 });
 
@@ -41,7 +44,7 @@ export async function listModels() {
   for (const model of models) {
     console.log(`- ${model}`);
   }
-  if (models.filter(m => m.includes('/') && m.split('/')[0] != 'ollama').length > 0) {
+  if (models.filter(m => m.includes('/') && (m.split('/')[0] != 'ollama' || m.split('/')[0] != 'xai')).length > 0) {
     console.log(chalk.yellow.inverse('\n ! ') + chalk.yellow(" Warning: Some of the models shown may not support text generation, please check the provider's official documentation."));
   }
 }

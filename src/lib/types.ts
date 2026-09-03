@@ -42,6 +42,9 @@ export interface ModelConfig {
   google?: {
     apiKey: string;
   }
+  xai?: {
+    apiKey: string;
+  }
   scheme?: any;
 }
 
