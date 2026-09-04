@@ -36,6 +36,7 @@ export default class Model {
   protected anthropicBaseUrl = 'https://api.anthropic.com';
   protected ollamaBaseUrl = 'https://localhost:11434';
   protected googleBaseUrl = 'https://generativelanguage.googleapis.com';
+  protected groqBaseUrl = 'https://api.groq.com/openai';
   protected xaiBaseUrl = 'https://api.x.ai';
 
   public constructor(config: ModelConfig) {
@@ -173,6 +174,20 @@ export default class Model {
       }
     }
 
+    if (config.groq?.apiKey) {
+      try {
+        const groqList = await this.fetchList(`${this.groqBaseUrl}/v1/models`, {
+          "Authorization": 'Bearer ' + config.groq?.apiKey
+        }) as { data: Record<any, string | number>[] };
+        for (const m of groqList.data) {
+          modelList.push('groq/'+m.id);
+        }
+      } catch (err) {
+        console.error(err);
+        console.error('failed to list groq models');
+      }
+    }
+
     if (config.xai?.apiKey) {
       try {
         const xaiList = await this.fetchList(`${this.xaiBaseUrl}/v1/language-models`, {
@@ -183,7 +198,7 @@ export default class Model {
         }
       } catch (err) {
         console.error(err);
-        console.error('failed to list anthropic models');
+        console.error('failed to list xai models');
       }
     }
 
@@ -194,7 +209,7 @@ export default class Model {
     const config = this.config;
     const rawModel = request.model.split('/');
     const provider = rawModel[0];
-    const model = rawModel[1];
+    const model = rawModel.length > 2 ? rawModel.slice(1, rawModel.length).join("/") : rawModel[1];
 
     if (provider == 'ollama') {
       const headers = {
@@ -248,6 +263,7 @@ export default class Model {
         model,
         input: request.messages.map(m => ({
           role: m.role,
+          type: "message",
           content: [
             {
               type: 'input_text',
@@ -366,6 +382,56 @@ export default class Model {
           message: {
             role: 'assistant',
             content: content[0].text
+          } as Message
+        };
+      } catch (err) {
+        if (err instanceof FetchError) {
+          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+            throw new Error(err.json.error.message);
+          }
+          throw new Error(err.message);
+        }
+        throw err;
+      }
+    }
+
+    if (provider == 'groq')  {
+      const headers = {
+        Authorization: 'Bearer ' + config.groq?.apiKey
+      };
+      const body: any = {
+        model,
+        input: request.messages.map(m => ({
+          role: m.role,
+          type: "message",
+          content: [
+            {
+              type: 'input_text',
+              text: m.content
+            }
+          ]
+        })),
+        text: {
+          format: this.config.scheme ? {
+            type: 'json_schema',
+            name: 'translated_cues',
+            schema: this.config.scheme
+          } : {
+            type: 'text',
+          }
+        },
+        stream: false
+      }
+      if (request.system) body.instructions = request.system;
+      if (request.options.temperature) body.temperature = request.options.temperature
+      if (request.think) body.reasoning.effort = 'medium'
+      try {
+        const response = await this.fetchGenerate(`${this.groqBaseUrl}/v1/responses`, headers, body);
+        const content = response.output.filter((c: any) => c.type == 'message')[0];
+        return {
+          message: {
+            role: content.role,
+            content: content.content[0].text
           } as Message
         };
       } catch (err) {

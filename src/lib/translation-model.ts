@@ -26,6 +26,9 @@ const client = new Model({
   google: {
     apiKey: process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY ?? ''
   },
+  groq: {
+    apiKey: process.env.GROQ_API_KEY ?? ''
+  },
   xai: {
     apiKey: process.env.XAI_API_KEY ?? process.env.GROK_API_KEY ?? ''
   },
