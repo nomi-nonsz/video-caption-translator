@@ -64,13 +64,24 @@ ANTHROPIC_API_KEY=<your-api-key> video-caption-translator --lang en --type video
 >
 > Since it's built with Bun, it can automatically load the environment variables in the `.env` file right in your working directory.
 
-## OpenAI and Anthropic models
+## Providers
 
-By default, this video-caption-translator uses Ollama as its main provider. Starting with version v1.1.0, you can use models from OpenAI and Anthropic by setting their API keys
+Supported providers:
+
+- Anthropic
+- Groq
+- Google
+- LM Studio
+- OpenAI
+- xAI
 
 ```bash
-export OPENAI_API_KEY=<your-api-key>
 export ANTHROPIC_API_KEY=<your-api-key>
+export GROQ_API_KEY=<your-api-key>
+export GOOGLE_API_KEY=<your-api-key>
+export OPENAI_API_KEY=<your-api-key>
+export XAI_API_KEY=<your-api-key>
+export LM_API_TOKEN=<your-token>
 ```
 
 ## Ollama Cloud
