@@ -17,6 +17,10 @@ const client = new Model({
     host: process.env.OLLAMA_HOST,
     apiKey: process.env.OLLAMA_API_KEY,
   },
+  lmstudio: {
+    host: process.env.LM_HOST,
+    apiKey: process.env.LM_API_TOKEN,
+  },
   openai: {
     apiKey: process.env.OPENAI_API_KEY ?? ''
   },
@@ -25,6 +29,9 @@ const client = new Model({
   },
   google: {
     apiKey: process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY ?? ''
+  },
+  groq: {
+    apiKey: process.env.GROQ_API_KEY ?? ''
   },
   xai: {
     apiKey: process.env.XAI_API_KEY ?? process.env.GROK_API_KEY ?? ''
