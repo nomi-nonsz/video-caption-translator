@@ -35,6 +35,7 @@ export default class Model {
   protected openaiBaseUrl = 'https://api.openai.com';
   protected anthropicBaseUrl = 'https://api.anthropic.com';
   protected ollamaBaseUrl = 'https://localhost:11434';
+  protected lmsBaseUrl = 'http://localhost:1234';
   protected googleBaseUrl = 'https://generativelanguage.googleapis.com';
   protected groqBaseUrl = 'https://api.groq.com/openai';
   protected xaiBaseUrl = 'https://api.x.ai';
@@ -119,6 +120,20 @@ export default class Model {
       } catch (err) {
         console.error(err);
         console.error('failed to list ollama models');
+      }
+    }
+
+    if (config.lmstudio?.host || config.lmstudio?.apiKey) {
+      try {
+        const lmsList = await this.fetchList(`${this.lmsBaseUrl}/api/v1/models`, config.lmstudio?.apiKey ? {
+          Authorization: 'Bearer ' + config.lmstudio.apiKey
+        } : {}) as { models: Record<any, string | number>[] };
+        for (const m of lmsList.models) {
+          modelList.push('lms/'+m.key);
+        }
+      } catch (err) {
+        console.error(err);
+        console.error('failed to list lmstudio models');
       }
     }
 
@@ -249,6 +264,56 @@ export default class Model {
           const url = new URL(err.url);
           if (err.code == 'ConnectionRefused' && url.hostname == 'localhost')
             throw new Error('unable to access ollama instance. is ollama daemon running?');
+          throw new Error(err.message);
+        }
+        throw err;
+      }
+    }
+
+    if (provider == 'lms')  {
+      const headers = {
+        Authorization: 'Bearer ' + config.lmstudio?.apiKey
+      };
+      const body: any = {
+        model,
+        input: request.messages.map(m => ({
+          role: m.role,
+          type: "message",
+          content: [
+            {
+              type: 'input_text',
+              text: m.content
+            }
+          ]
+        })),
+        text: {
+          format: this.config.scheme ? {
+            type: 'json_schema',
+            name: 'translated_cues',
+            schema: this.config.scheme
+          } : {
+            type: 'text',
+          }
+        },
+        stream: false
+      }
+      if (request.system) body.instructions = request.system;
+      if (request.options.temperature) body.temperature = request.options.temperature
+      if (request.think) body.reasoning.effort = 'medium'
+      try {
+        const response = await this.fetchGenerate(`${this.lmsBaseUrl}/v1/responses`, headers, body);
+        const content = response.output.filter((c: any) => c.type == 'message')[0];
+        return {
+          message: {
+            role: content.role,
+            content: content.content[0].text
+          } as Message
+        };
+      } catch (err) {
+        if (err instanceof FetchError) {
+          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+            throw new Error(err.json.error.message);
+          }
           throw new Error(err.message);
         }
         throw err;

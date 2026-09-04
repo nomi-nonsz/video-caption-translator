@@ -39,6 +39,10 @@ export interface ModelConfig {
     host?: string | undefined;
     apiKey?: string | undefined;
   };
+  lmstudio?: {
+    host?: string | undefined;
+    apiKey?: string | undefined;
+  }
   google?: {
     apiKey: string;
   }
@@ -47,7 +51,7 @@ export interface ModelConfig {
   },
   xai?: {
     apiKey: string;
-  }
+  },
   scheme?: any;
 }
 

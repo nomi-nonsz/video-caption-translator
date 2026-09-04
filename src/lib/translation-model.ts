@@ -17,6 +17,10 @@ const client = new Model({
     host: process.env.OLLAMA_HOST,
     apiKey: process.env.OLLAMA_API_KEY,
   },
+  lmstudio: {
+    host: process.env.LM_HOST,
+    apiKey: process.env.LM_API_TOKEN,
+  },
   openai: {
     apiKey: process.env.OPENAI_API_KEY ?? ''
   },
