@@ -93,12 +93,14 @@ export function parseSub(cues: Cue[], format: 'SRT' | 'WebVTT') {
 }
 
 type EmbedVideoOpts = {
-  disposition?: [string, any][]
+  streamLength?: number
+  disposition?: [string, any][],
 }
 
 export async function embedToVideo(srt: string, lang: string, inpath: string, outpath: string, options?: EmbedVideoOpts) {
   const subPath = path.join(os.tmpdir(), `${crypto.randomUUID()}-${Date.now()}.srt`);
   const extraArgs = [];
+  const streamLength = options?.streamLength || 0;
 
   state.tmpFiles.add(subPath);
   
@@ -110,7 +112,7 @@ export async function embedToVideo(srt: string, lang: string, inpath: string, ou
       }
     }
     if (dispositions.length > 0) {
-      extraArgs.push("-disposition:s:0");
+      extraArgs.push(`-disposition:s:${streamLength}`);
       extraArgs.push(dispositions.join("+"));
     }
   }
@@ -120,18 +122,15 @@ export async function embedToVideo(srt: string, lang: string, inpath: string, ou
     await execa("ffmpeg", ["-y",
       "-i", inpath,
       "-i", subPath,
-      "-map", "0:v",
-      "-map", "0:a",
-      "-map", "1:0",
+      "-map", "0",
+      "-map", "1",
       "-c", "copy",
       "-c:s", "srt",
-      "-c:v", "copy",
-      "-c:a", "copy",
-      "-metadata:s:s:0", `language=${toThreeLetterCode(lang)}`,
-      "-metadata:s:s:0", `title="${getLanguageName(lang)} (Auto Translated)"`,
+      `-metadata:s:s:${streamLength}`, `language=${toThreeLetterCode(lang)}`,
+      `-metadata:s:s:${streamLength}`, `title=${getLanguageName(lang)} (Auto Translated)`,
       ...extraArgs,
       outpath
-    ]); 
+    ]);
   } catch (err) {
     if (err instanceof ExecaError) {
       log.error(err.shortMessage);

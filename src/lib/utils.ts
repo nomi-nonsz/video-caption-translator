@@ -31,6 +31,15 @@ export function cleanup() {
   }
 }
 
+export function isValidJSON(json: string) {
+  try {
+    JSON.parse(json);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 export async function checkFile(path: string) {
   try {
     await fsp.access(path, fsp.constants.F_OK);
