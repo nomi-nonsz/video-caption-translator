@@ -13,7 +13,7 @@ type FetchErrorProps = {
   json?: unknown
 }
 
-type OpenAITextFormat = {
+type OpenAIFormat = {
   type: 'text'
 } | {
   type: 'json_object'
@@ -32,7 +32,7 @@ type OpenAIConfig = {
   instruction?: string | undefined,
   temperature?: number,
   reasoning?: string | null,
-  format?: OpenAITextFormat,
+  format?: OpenAIFormat,
 }
 
 class FetchError extends Error {
@@ -273,22 +273,13 @@ export default class Model {
     }
     if (config.temperature) body.temperature = config.temperature;
     if (config.reasoning || config.reasoning == null) body.reasoning_effort = config.reasoning;
-    try {
-      const response = await this.fetchGenerate(baseUrl + endpoint, headers, body);
-      const choice = response.choices[0];
-      return {
-        role: choice.message.role,
-        content: choice.message.content
-      } as Message
-    } catch (err) {
-      if (err instanceof FetchError) {
-        if (err.json?.error?.message && typeof err.json.error.message == 'string') {
-          throw new Error(err.json.error.message);
-        }
-        throw new Error(err.message);
-      }
-      throw err;
-    }
+
+    const response = await this.fetchGenerate(baseUrl + endpoint, headers, body);
+    const choice = response.choices[0];
+    return {
+      role: choice.message.role,
+      content: choice.message.content
+    } as Message
   }
 
   protected async responsesOpenAI(config: OpenAIConfig) {
@@ -322,22 +313,13 @@ export default class Model {
     if (config.reasoning) body.reasoning = {
       effort: config.reasoning
     }
-    try {
-      const response = await this.fetchGenerate(baseUrl+endpoint, headers, body);
-      const content = response.output.filter((c: any) => c.type == 'message')[0];
-      return {
-        role: content.role,
-        content: content.content[0].text
-      } as Message;
-    } catch (err) {
-      if (err instanceof FetchError) {
-        if (err.json?.error?.message && typeof err.json.error.message == 'string') {
-          throw new Error(err.json.error.message);
-        }
-        throw new Error(err.message);
-      }
-      throw err;
-    }
+    
+    const response = await this.fetchGenerate(baseUrl+endpoint, headers, body);
+    const content = response.output.filter((c: any) => c.type == 'message')[0];
+    return {
+      role: content.role,
+      content: content.content[0].text
+    } as Message;
   }
 
   public async generate(request: GenerateRequest) {
@@ -397,36 +379,64 @@ export default class Model {
         throw err;
       }
     }
+    
+    try {
+      if (provider == 'lms')  {
+        const message = await this.chatOpenAI({
+          messages: request.messages,
+          model: model ?? 'unknown',
+          baseUrl: this.lmsBaseUrl,
+          apiKey: this.config.lmstudio?.apiKey,
+          instruction: request.system,
+          format: openaiFormat as OpenAIFormat,
+          reasoning: request.think ? 'medium' : null,
+          temperature: request.options.temperature
+        })
+        return { message };
+      }
 
-    if (provider == 'lms')  {
-      const message = await this.chatOpenAI({
-        messages: request.messages,
-        model: model ?? 'unknown',
-        baseUrl: this.lmsBaseUrl,
-        apiKey: this.config.lmstudio?.apiKey,
-        instruction: request.system,
-        format: openaiFormat as OpenAITextFormat,
-        reasoning: request.think ? 'medium' : null,
-        temperature: request.options.temperature
-      })
-      return { message };
-    }
+      if (provider == 'openai')  {
+        const message = await this.responsesOpenAI({
+          messages: request.messages,
+          model: model ?? 'unknown',
+          apiKey: config.openai?.apiKey,
+          instruction: request.system,
+          format: openaiFormat as OpenAIFormat,
+          reasoning: request.think ? 'medium' : null,
+          temperature: request.options.temperature
+        });
+        return { message };
+      }
 
-    if (provider == 'openai')  {
-      const message = await this.responsesOpenAI({
-        messages: request.messages,
-        model: model ?? 'unknown',
-        apiKey: config.openai?.apiKey,
-        instruction: request.system,
-        format: openaiFormat as OpenAITextFormat,
-        reasoning: request.think ? 'medium' : null,
-        temperature: request.options.temperature
-      });
-      return { message };
-    }
+      if (provider == 'groq')  {
+        const message = await this.chatOpenAI({
+          messages: request.messages,
+          model: model ?? 'unknown',
+          baseUrl: this.groqBaseUrl,
+          apiKey: this.config.groq?.apiKey,
+          instruction: request.system,
+          format: openaiFormat as OpenAIFormat,
+          reasoning: request.think ? 'medium' : null,
+          temperature: request.options.temperature
+        })
+        return { message };
+      }
 
-    if (provider == 'anthropic') {
-      try {
+      if (provider == 'xai')  {
+        const message = await this.chatOpenAI({
+          messages: request.messages,
+          model: model ?? 'unknown',
+          baseUrl: this.xaiBaseUrl,
+          apiKey: this.config.xai?.apiKey,
+          instruction: request.system,
+          format: openaiFormat as OpenAIFormat,
+          reasoning: request.think ? 'medium' : null,
+          temperature: request.options.temperature
+        })
+        return { message };
+      }
+
+      if (provider == 'anthropic') {
         const headers = {
           "X-Api-Key": config.anthropic?.apiKey ?? '',
           "anthropic-version": "2023-06-01"
@@ -455,44 +465,34 @@ export default class Model {
             content: content.filter((c: any) => c.type == 'text')[0].text
           } as Message
         };
-      } catch (err) {
-        if (err instanceof FetchError) {
-          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
-            throw new Error(`${err.message}\n${err.json.error.message}`);
-          }
-          throw new Error(err.message);
-        }
-        throw err;
       }
-    }
 
-    if (provider == 'google')  {
-      const headers = {
-        'x-goog-api-key': config.google?.apiKey ?? ''
-      };
-      const body: any = {
-        model,
-        input: request.messages.map(m => ({
-          type: m.role == 'user' ? 'user_input' : 'model_output',
-          content: [
-            {
-              type: 'text',
-              text: m.content
-            }
-          ]
-        })),
-        response_format: {
-          type: 'text',
-          mime_type: 'application/json',
-          schema: this.config.scheme
-        },
-        generation_config: {
-          thinking_level: request.think ? 'high' : 'minimal'
-        },
-        stream: false
-      }
-      if (request.system) body.system_instruction = request.system;
-      try {
+      if (provider == 'google')  {
+        const headers = {
+          'x-goog-api-key': config.google?.apiKey ?? ''
+        };
+        const body: any = {
+          model,
+          input: request.messages.map(m => ({
+            type: m.role == 'user' ? 'user_input' : 'model_output',
+            content: [
+              {
+                type: 'text',
+                text: m.content
+              }
+            ]
+          })),
+          response_format: {
+            type: 'text',
+            mime_type: 'application/json',
+            schema: this.config.scheme
+          },
+          generation_config: {
+            thinking_level: request.think ? 'high' : 'minimal'
+          },
+          stream: false
+        }
+        if (request.system) body.system_instruction = request.system;
         const response = await this.fetchGenerate(`${this.googleBaseUrl}/v1/interactions`, headers, body);
         const { steps } = response;
         const content = steps.filter((s: any) => s.type == "model_output")[0].content;
@@ -502,43 +502,15 @@ export default class Model {
             content: content[0].text
           } as Message
         };
-      } catch (err) {
-        if (err instanceof FetchError) {
-          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
-            throw new Error(err.json.error.message);
-          }
-          throw new Error(err.message);
-        }
-        throw err;
       }
-    }
-
-    if (provider == 'groq')  {
-      const message = await this.chatOpenAI({
-        messages: request.messages,
-        model: model ?? 'unknown',
-        baseUrl: this.groqBaseUrl,
-        apiKey: this.config.groq?.apiKey,
-        instruction: request.system,
-        format: openaiFormat as OpenAITextFormat,
-        reasoning: request.think ? 'medium' : null,
-        temperature: request.options.temperature
-      })
-      return { message };
-    }
-
-    if (provider == 'xai')  {
-      const message = await this.chatOpenAI({
-        messages: request.messages,
-        model: model ?? 'unknown',
-        baseUrl: this.xaiBaseUrl,
-        apiKey: this.config.xai?.apiKey,
-        instruction: request.system,
-        format: openaiFormat as OpenAITextFormat,
-        reasoning: request.think ? 'medium' : null,
-        temperature: request.options.temperature
-      })
-      return { message };
+    } catch (err) {
+      if (err instanceof FetchError) {
+        if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+          throw new Error(err.json.error.message);
+        }
+        throw new Error(err.message);
+      }
+      throw err;
     }
 
     throw new Error(`Invalid provider "${provider}" on ${request.model}`);
