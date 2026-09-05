@@ -13,6 +13,28 @@ type FetchErrorProps = {
   json?: unknown
 }
 
+type OpenAITextFormat = {
+  type: 'text'
+} | {
+  type: 'json_object'
+} | {
+  type: 'json_schema',
+  name: string,
+  schema: any
+}
+
+type OpenAIConfig = {
+  model: string,
+  messages: Message[],
+  apiKey?: string | undefined,
+  baseUrl?: string,
+  endpoint?: string,
+  instruction?: string | undefined,
+  temperature?: number,
+  reasoning?: string | null,
+  format?: OpenAITextFormat,
+}
+
 class FetchError extends Error {
   public url: string;
   public code: string;
@@ -44,6 +66,7 @@ export default class Model {
     this.config = config;
 
     if (config.ollama?.host || config.ollama?.apiKey) this.ollamaBaseUrl = config.ollama.host || 'https://ollama.com';
+    if (config.lmstudio?.host) this.lmsBaseUrl = config.lmstudio.host;
   }
 
   protected async fetchList(url: string, headers: HeadersInit) {
@@ -220,11 +243,116 @@ export default class Model {
     return modelList;
   }
 
+  // For OpenAI-compatible APIs
+  protected async chatOpenAI(config: OpenAIConfig) {
+    const baseUrl = config.baseUrl || this.openaiBaseUrl;
+    const endpoint = config.endpoint || '/v1/chat/completions';
+    const headers: Record<string, string> = {};
+
+    if (config.apiKey) headers['Authorization'] = 'Bearer ' + config.apiKey;
+    
+    const body: any = {
+      model: config.model,
+      messages: config.messages,
+      response_format: config.format?.type == 'json_schema' ? {
+        type: config.format.type,
+        json_schema: {
+          name: config.format.name,
+          schema: config.format.schema
+        }
+      } : (config.format || {
+        type: 'text'
+      }),
+      stream: false
+    }
+    if (config.instruction) {
+      body.messages.unshift({
+        role: 'system',
+        content: config.instruction
+      })
+    }
+    if (config.temperature) body.temperature = config.temperature;
+    if (config.reasoning || config.reasoning == null) body.reasoning_effort = config.reasoning;
+    try {
+      const response = await this.fetchGenerate(baseUrl + endpoint, headers, body);
+      const choice = response.choices[0];
+      return {
+        role: choice.message.role,
+        content: choice.message.content
+      } as Message
+    } catch (err) {
+      if (err instanceof FetchError) {
+        if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+          throw new Error(err.json.error.message);
+        }
+        throw new Error(err.message);
+      }
+      throw err;
+    }
+  }
+
+  protected async responsesOpenAI(config: OpenAIConfig) {
+    const baseUrl = config.baseUrl || this.openaiBaseUrl;
+    const endpoint = config.endpoint || '/v1/responses';
+    const headers: Record<string, string> = {};
+
+    if (config.apiKey) headers['Authorization'] = 'Bearer ' + config.apiKey;
+    
+    const body: any = {
+      model: config.model,
+      input: config.messages.map(m => ({
+        role: m.role,
+        type: "message",
+        content: [
+          {
+            type: 'input_text',
+            text: m.content
+          }
+        ]
+      })),
+      text: {
+        format: config.format || {
+          type: 'text'
+        }
+      },
+      stream: false
+    }
+    if (config.instruction) body.instructions = config.instruction;
+    if (config.temperature) body.temperature = config.temperature;
+    if (config.reasoning) body.reasoning = {
+      effort: config.reasoning
+    }
+    try {
+      const response = await this.fetchGenerate(baseUrl+endpoint, headers, body);
+      const content = response.output.filter((c: any) => c.type == 'message')[0];
+      return {
+        role: content.role,
+        content: content.content[0].text
+      } as Message;
+    } catch (err) {
+      if (err instanceof FetchError) {
+        if (err.json?.error?.message && typeof err.json.error.message == 'string') {
+          throw new Error(err.json.error.message);
+        }
+        throw new Error(err.message);
+      }
+      throw err;
+    }
+  }
+
   public async generate(request: GenerateRequest) {
     const config = this.config;
     const rawModel = request.model.split('/');
     const provider = rawModel[0];
     const model = rawModel.length > 2 ? rawModel.slice(1, rawModel.length).join("/") : rawModel[1];
+
+    const openaiFormat = this.config.scheme ? {
+      type: 'json_schema',
+      name: 'translated_cues',
+      schema: this.config.scheme
+    } : {
+      type: 'text',
+    };
 
     if (provider == 'ollama') {
       const headers = {
@@ -271,105 +399,30 @@ export default class Model {
     }
 
     if (provider == 'lms')  {
-      const headers = {
-        Authorization: 'Bearer ' + config.lmstudio?.apiKey
-      };
-      const body: any = {
-        model,
-        input: request.messages.map(m => ({
-          role: m.role,
-          type: "message",
-          content: [
-            {
-              type: 'input_text',
-              text: m.content
-            }
-          ]
-        })),
-        text: {
-          format: this.config.scheme ? {
-            type: 'json_schema',
-            name: 'translated_cues',
-            schema: this.config.scheme
-          } : {
-            type: 'text',
-          }
-        },
-        stream: false
-      }
-      if (request.system) body.instructions = request.system;
-      if (request.options.temperature) body.temperature = request.options.temperature
-      if (request.think) body.reasoning.effort = 'medium'
-      try {
-        const response = await this.fetchGenerate(`${this.lmsBaseUrl}/v1/responses`, headers, body);
-        const content = response.output.filter((c: any) => c.type == 'message')[0];
-        return {
-          message: {
-            role: content.role,
-            content: content.content[0].text
-          } as Message
-        };
-      } catch (err) {
-        if (err instanceof FetchError) {
-          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
-            throw new Error(err.json.error.message);
-          }
-          throw new Error(err.message);
-        }
-        throw err;
-      }
+      const message = await this.chatOpenAI({
+        messages: request.messages,
+        model: model ?? 'unknown',
+        baseUrl: this.lmsBaseUrl,
+        apiKey: this.config.lmstudio?.apiKey,
+        instruction: request.system,
+        format: openaiFormat as OpenAITextFormat,
+        reasoning: request.think ? 'medium' : null,
+        temperature: request.options.temperature
+      })
+      return { message };
     }
 
     if (provider == 'openai')  {
-      const headers = {
-        Authorization: 'Bearer ' + config.openai?.apiKey
-      };
-      const body: any = {
-        model,
-        input: request.messages.map(m => ({
-          role: m.role,
-          type: "message",
-          content: [
-            {
-              type: 'input_text',
-              text: m.content
-            }
-          ]
-        })),
-        text: {
-          format: this.config.scheme ? {
-            type: 'json_schema',
-            name: 'translated_cues',
-            schema: this.config.scheme
-          } : {
-            type: 'text',
-          }
-        },
-        reasoning: {
-          effort: request.think ? 'high' : 'low'
-        },
-        stream: false
-      }
-      if (request.system) body.instructions = request.system;
-      if (request.options.temperature) body.temperature = request.options.temperature
-      try {
-        const response = await this.fetchGenerate(`${this.openaiBaseUrl}/v1/responses`, headers, body);
-        const content = response.output.filter((c: any) => c.type == 'message')[0];
-        return {
-          message: {
-            role: content.role,
-            content: content.content[0].text
-          } as Message
-        };
-      } catch (err) {
-        if (err instanceof FetchError) {
-          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
-            throw new Error(err.json.error.message);
-          }
-          throw new Error(err.message);
-        }
-        throw err;
-      }
+      const message = await this.responsesOpenAI({
+        messages: request.messages,
+        model: model ?? 'unknown',
+        apiKey: config.openai?.apiKey,
+        instruction: request.system,
+        format: openaiFormat as OpenAITextFormat,
+        reasoning: request.think ? 'medium' : null,
+        temperature: request.options.temperature
+      });
+      return { message };
     }
 
     if (provider == 'anthropic') {
@@ -461,96 +514,31 @@ export default class Model {
     }
 
     if (provider == 'groq')  {
-      const headers = {
-        Authorization: 'Bearer ' + config.groq?.apiKey
-      };
-      const body: any = {
-        model,
-        input: request.messages.map(m => ({
-          role: m.role,
-          type: "message",
-          content: [
-            {
-              type: 'input_text',
-              text: m.content
-            }
-          ]
-        })),
-        text: {
-          format: this.config.scheme ? {
-            type: 'json_schema',
-            name: 'translated_cues',
-            schema: this.config.scheme
-          } : {
-            type: 'text',
-          }
-        },
-        stream: false
-      }
-      if (request.system) body.instructions = request.system;
-      if (request.options.temperature) body.temperature = request.options.temperature
-      if (request.think) body.reasoning.effort = 'medium'
-      try {
-        const response = await this.fetchGenerate(`${this.groqBaseUrl}/v1/responses`, headers, body);
-        const content = response.output.filter((c: any) => c.type == 'message')[0];
-        return {
-          message: {
-            role: content.role,
-            content: content.content[0].text
-          } as Message
-        };
-      } catch (err) {
-        if (err instanceof FetchError) {
-          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
-            throw new Error(err.json.error.message);
-          }
-          throw new Error(err.message);
-        }
-        throw err;
-      }
+      const message = await this.chatOpenAI({
+        messages: request.messages,
+        model: model ?? 'unknown',
+        baseUrl: this.groqBaseUrl,
+        apiKey: this.config.groq?.apiKey,
+        instruction: request.system,
+        format: openaiFormat as OpenAITextFormat,
+        reasoning: request.think ? 'medium' : null,
+        temperature: request.options.temperature
+      })
+      return { message };
     }
 
     if (provider == 'xai')  {
-      const headers = {
-        Authorization: 'Bearer ' + config.xai?.apiKey
-      };
-      const body: any = {
-        model,
-        input: request.messages,
-        text: {
-          format: this.config.scheme ? {
-            type: 'json_schema',
-            name: 'translated_cues',
-            schema: this.config.scheme
-          } : {
-            type: 'text',
-          }
-        },
-        reasoning: {
-          effort: request.think ? 'medium' : 'low'
-        },
-        stream: false
-      }
-      if (request.system) body.instructions = request.system;
-      if (request.options.temperature) body.temperature = request.options.temperature
-      try {
-        const response = await this.fetchGenerate(`${this.xaiBaseUrl}/v1/responses`, headers, body);
-        const content = response.output.filter((c: any) => c.type == 'message')[0];
-        return {
-          message: {
-            role: content.role,
-            content: content.content[0].text
-          } as Message
-        };
-      } catch (err) {
-        if (err instanceof FetchError) {
-          if (err.json?.error?.message && typeof err.json.error.message == 'string') {
-            throw new Error(err.json.error.message);
-          }
-          throw new Error(err.message);
-        }
-        throw err;
-      }
+      const message = await this.chatOpenAI({
+        messages: request.messages,
+        model: model ?? 'unknown',
+        baseUrl: this.xaiBaseUrl,
+        apiKey: this.config.xai?.apiKey,
+        instruction: request.system,
+        format: openaiFormat as OpenAITextFormat,
+        reasoning: request.think ? 'medium' : null,
+        temperature: request.options.temperature
+      })
+      return { message };
     }
 
     throw new Error(`Invalid provider "${provider}" on ${request.model}`);
