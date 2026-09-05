@@ -89,6 +89,7 @@ export async function translate(inpath: string, outpath: string, option: Transla
     await Bun.write(outpath, translated);
   } else {
     await embedToVideo(translated, params.targetLang, inpath, outpath, {
+      streamLength: subList.length,
       disposition: Object.entries(streamMetadata.disposition)
     });
   }

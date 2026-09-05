@@ -11,6 +11,7 @@ import { log } from './logger';
 import { getLanguageName } from './lang';
 import { buildMessages, SCHEMA, SYSTEM_PROMPT } from './prompt';
 import chalk from 'chalk';
+import { isValidJSON } from './utils';
 
 const client = new Model({
   ollama: {
@@ -95,6 +96,13 @@ export async function translateChunk(chunk: CueChunk, model: string, previousCue
     system: SYSTEM_PROMPT,
     think: !!options.think
   })
+
+  if (!isValidJSON(res.message.content)) {
+    log.error("Oops! It looks like the model is returning invalid JSON! Well that is messed up. Let's see what that is");
+    log.errorRaw(res.message.content);
+    log.info("We truly apologize for the inconvenience. Please consider using a higher model or enable thinking");
+    process.exit(1);
+  }
 
   const cues = JSON.parse(res.message.content);
 
