@@ -44,6 +44,13 @@ export async function getModels() {
   return models;
 }
 
+function hasModelsNotLanguage(models: string[]) {
+  return models.filter(m => {
+    const provder = m.split('/')[0];
+    return !['ollama', 'xai'].includes(provder || '')
+  }).length > 0
+}
+
 export async function listModels() {
   const models = (await getModels());
 
@@ -51,7 +58,7 @@ export async function listModels() {
   for (const model of models) {
     console.log(`- ${model}`);
   }
-  if (models.filter(m => m.includes('/') && (m.split('/')[0] != 'ollama' || m.split('/')[0] != 'xai')).length > 0) {
+  if (hasModelsNotLanguage(models)) {
     console.log(chalk.yellow.inverse('\n ! ') + chalk.yellow(" Warning: Some of the models shown may not support text generation, please check the provider's official documentation."));
   }
 }

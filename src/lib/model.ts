@@ -26,13 +26,19 @@ type OpenAIFormat = {
 type OpenAIConfig = {
   model: string,
   messages: Message[],
-  apiKey?: string | undefined,
+  apiKey?: string,
   baseUrl?: string,
   endpoint?: string,
-  instruction?: string | undefined,
+  instruction?: string,
   temperature?: number,
   reasoning?: string | null,
   format?: OpenAIFormat,
+}
+
+type OpenAIProviderOptions = {
+  baseUrl?: string,
+  apiKey?: string,
+  useResponsesApi?: boolean,
 }
 
 class FetchError extends Error {
@@ -50,7 +56,6 @@ class FetchError extends Error {
   }
 }
 
-// rewrite abstraction layer shit
 export default class Model {
   private config: ModelConfig;
 
@@ -118,7 +123,7 @@ export default class Model {
   }
 
   protected isGenerativeModel(name: string): boolean {
-    const words = ['image', 'embedding', 'tts', 'moderation', 'transcribe', 'audio', 'image'];
+    const words = ['image', 'embedding', 'tts', 'moderation', 'transcribe', 'audio'];
 
     for (const exc of words) {
       if (name.includes(exc))
@@ -126,6 +131,60 @@ export default class Model {
     }
 
     return true;
+  }
+
+  protected getOpenAIFormat(): OpenAIFormat {
+    if (!this.config.scheme) {
+      return {
+        type: 'text'
+      };
+    }
+
+    return {
+      type: 'json_schema',
+      name: 'translated_cues',
+      schema: this.config.scheme
+    };
+  }
+
+  protected getTemperature(request: GenerateRequest): number | undefined {
+    return request.options?.temperature;
+  }
+
+  protected parseRequestModel(modelValue: string): { provider?: string, model: string } {
+    const rawModel = modelValue.split('/');
+    return {
+      provider: rawModel[0],
+      model: rawModel.length > 2 ? rawModel.slice(1).join('/') : (rawModel[1] ?? 'unknown')
+    };
+  }
+
+  protected withInstruction(messages: Message[], instruction?: string): Message[] {
+    if (!instruction) return messages;
+    return [{ role: 'system', content: instruction }, ...messages];
+  }
+
+  protected async generateOpenAICompatible(
+    request: GenerateRequest,
+    model: string,
+    options: OpenAIProviderOptions = {}
+  ): Promise<{ message: Message }> {
+    const config: OpenAIConfig = {
+      messages: request.messages,
+      model,
+      baseUrl: options.baseUrl,
+      apiKey: options.apiKey,
+      instruction: request.system,
+      format: this.getOpenAIFormat(),
+      reasoning: request.think ? 'medium' : null,
+      temperature: this.getTemperature(request)
+    };
+
+    const message = options.useResponsesApi
+      ? await this.responsesOpenAI(config)
+      : await this.chatOpenAI(config);
+
+    return { message };
   }
   
   public async list() {
@@ -155,8 +214,8 @@ export default class Model {
           modelList.push('lms/'+m.key);
         }
       } catch (err) {
-        console.error(err);
-        console.error('failed to list lmstudio models');
+        if (err instanceof Error)
+          console.error(`failed to list lmstudio models: ${err.message}`);
       }
     }
 
@@ -173,8 +232,8 @@ export default class Model {
           modelList.push('openai/'+m.id);
         }
       } catch (err) {
-        console.error(err);
-        console.error('failed to list openai models');
+        if (err instanceof Error)
+          console.error(`failed to list openai models: ${err.message}`);
       }
     }
 
@@ -188,8 +247,8 @@ export default class Model {
           modelList.push('anthropic/'+m.id);
         }
       } catch (err) {
-        console.error(err);
-        console.error('failed to list anthropic models');
+        if (err instanceof Error)
+          console.error(`failed to list anthropic models: ${err.message}`);
       }
     }
 
@@ -207,8 +266,8 @@ export default class Model {
           modelList.push('google/'+name);
         }
       } catch (err) {
-        console.error(err);
-        console.error('failed to list google models');
+        if (err instanceof Error)
+          console.error(`failed to list google models: ${err.message}`);
       }
     }
 
@@ -221,8 +280,8 @@ export default class Model {
           modelList.push('groq/'+m.id);
         }
       } catch (err) {
-        console.error(err);
-        console.error('failed to list groq models');
+        if (err instanceof Error)
+          console.error(`failed to list groq models: ${err.message}`);
       }
     }
 
@@ -235,8 +294,8 @@ export default class Model {
           modelList.push('xai/'+m.id);
         }
       } catch (err) {
-        console.error(err);
-        console.error('failed to list xai models');
+        if (err instanceof Error)
+          console.error(`failed to list xai models: ${err.message}`);
       }
     }
 
@@ -324,37 +383,18 @@ export default class Model {
 
   public async generate(request: GenerateRequest) {
     const config = this.config;
-    const rawModel = request.model.split('/');
-    const provider = rawModel[0];
-    const model = rawModel.length > 2 ? rawModel.slice(1, rawModel.length).join("/") : rawModel[1];
-
-    const openaiFormat = this.config.scheme ? {
-      type: 'json_schema',
-      name: 'translated_cues',
-      schema: this.config.scheme
-    } : {
-      type: 'text',
-    };
+    const { provider, model } = this.parseRequestModel(request.model);
 
     if (provider == 'ollama') {
       const headers = {
         Authorization: 'Bearer ' + config.ollama?.apiKey
       };
       try {
-        const messages: Message[] = []
-        
-        if (request.system) {
-          messages.push({
-            role: 'system',
-            content: request.system
-          })
-        }
-
-        messages.push(...request.messages);
-        delete request.system;
+        const messages = this.withInstruction(request.messages, request.system);
+        const { system: _system, ...requestBody } = request;
 
         const response = await this.fetchGenerate(`${this.ollamaBaseUrl}/api/chat`, headers, {
-          ...request,
+          ...requestBody,
           model,
           messages,
           stream: false,
@@ -381,59 +421,32 @@ export default class Model {
     }
     
     try {
-      if (provider == 'lms')  {
-        const message = await this.chatOpenAI({
-          messages: request.messages,
-          model: model ?? 'unknown',
+      if (provider == 'lms') {
+        return this.generateOpenAICompatible(request, model, {
           baseUrl: this.lmsBaseUrl,
-          apiKey: this.config.lmstudio?.apiKey,
-          instruction: request.system,
-          format: openaiFormat as OpenAIFormat,
-          reasoning: request.think ? 'medium' : null,
-          temperature: request.options.temperature
-        })
-        return { message };
-      }
-
-      if (provider == 'openai')  {
-        const message = await this.responsesOpenAI({
-          messages: request.messages,
-          model: model ?? 'unknown',
-          apiKey: config.openai?.apiKey,
-          instruction: request.system,
-          format: openaiFormat as OpenAIFormat,
-          reasoning: request.think ? 'medium' : null,
-          temperature: request.options.temperature
+          apiKey: this.config.lmstudio?.apiKey
         });
-        return { message };
       }
 
-      if (provider == 'groq')  {
-        const message = await this.chatOpenAI({
-          messages: request.messages,
-          model: model ?? 'unknown',
+      if (provider == 'openai') {
+        return this.generateOpenAICompatible(request, model, {
+          apiKey: config.openai?.apiKey,
+          useResponsesApi: true
+        });
+      }
+
+      if (provider == 'groq') {
+        return this.generateOpenAICompatible(request, model, {
           baseUrl: this.groqBaseUrl,
-          apiKey: this.config.groq?.apiKey,
-          instruction: request.system,
-          format: openaiFormat as OpenAIFormat,
-          reasoning: request.think ? 'medium' : null,
-          temperature: request.options.temperature
-        })
-        return { message };
+          apiKey: this.config.groq?.apiKey
+        });
       }
 
-      if (provider == 'xai')  {
-        const message = await this.chatOpenAI({
-          messages: request.messages,
-          model: model ?? 'unknown',
+      if (provider == 'xai') {
+        return this.generateOpenAICompatible(request, model, {
           baseUrl: this.xaiBaseUrl,
-          apiKey: this.config.xai?.apiKey,
-          instruction: request.system,
-          format: openaiFormat as OpenAIFormat,
-          reasoning: request.think ? 'medium' : null,
-          temperature: request.options.temperature
-        })
-        return { message };
+          apiKey: this.config.xai?.apiKey
+        });
       }
 
       if (provider == 'anthropic') {
