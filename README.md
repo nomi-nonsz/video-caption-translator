@@ -20,6 +20,14 @@ Using Ollama as your primary provider lets you easily use models both locally an
 
 For installation, go to [releases page](https://github.com/nomi-nonsz/video-caption-translator/releases) and download the executable binary based on your operating system.
 
+## Automated Installation (Beta)
+
+Linux/MacOS only
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nomi-nonsz/video-caption-translator/refs/heads/main/install.sh | sh
+```
+
 # Usage
 
 ```bash
@@ -82,6 +90,15 @@ export GOOGLE_API_KEY=<your-api-key>
 export OPENAI_API_KEY=<your-api-key>
 export XAI_API_KEY=<your-api-key>
 export LM_API_TOKEN=<your-token>
+```
+
+## Local Ollama and LM Studio
+
+To use Ollama and LM Studio locally, set the `OLLAMA_HOST` and `LM_HOST` with your local url
+
+```bash
+export OLLAMA_HOST="http://localhost:11434"
+export LM_HOST="http://localhost:1234"
 ```
 
 ## Ollama Cloud
