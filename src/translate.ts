@@ -39,14 +39,14 @@ export async function translate(inpath: string, outpath: string, option: Transla
   log.info(`Using model ${option.model}.`);
 
   if (!(await checkFile(inpath))) {
-    log.error(`Error: Cannot access ${inpath}. Either it's not accessable or it doesn't exist`);
+    log.error(`Cannot access ${inpath}. Either it's not accessable or it doesn't exist`);
     process.exit(1);
   }
 
   const containerMIME = Bun.file(inpath).type;
 
   if (!SUPPORTED_CONTAINER.includes(containerMIME)) {
-    log.error(`Error: ${inpath} is not supported with available formats: mp4, mkv, webm`);
+    log.error(`${inpath} is not supported with available formats: mp4, mkv, webm`);
     process.exit(1);
   }
 

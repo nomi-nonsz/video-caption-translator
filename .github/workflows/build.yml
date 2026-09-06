@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/nomi-nonsz/video-caption-translator
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          push: false
+          tags: ghcr.io/nomi-nonsz/video-caption-translator:latest
+          labels: ${{ steps.meta.outputs.labels }}
