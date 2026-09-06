@@ -12,7 +12,7 @@ _Animation: [Sprite Fright](https://youtu.be/_cMxraX_5RE) by Blender Studio_
 
 Using Ollama as your primary provider lets you easily use models both locally and in the cloud.
 
-# Installation:
+## Installation
 
 > [!IMPORTANT]
 >
@@ -20,15 +20,15 @@ Using Ollama as your primary provider lets you easily use models both locally an
 
 For installation, go to [releases page](https://github.com/nomi-nonsz/video-caption-translator/releases) and download the executable binary based on your operating system.
 
-## Automated Installation (Beta)
+### Automated Installation (Beta)
 
-Linux/MacOS only
+Linux/MacOS only.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nomi-nonsz/video-caption-translator/refs/heads/main/install.sh | sh
 ```
 
-# Usage
+## Usage
 
 ```bash
 video-caption-translator --lang en --type video --model openai/gpt-5-mini mycontent.mkv -o mycontent-translated.mkv
@@ -46,7 +46,7 @@ List connected models
 video-caption-translator --list-models
 ```
 
-# Configuration
+## Configuration
 
 Configuration can be set via environment variables
 
@@ -71,6 +71,16 @@ ANTHROPIC_API_KEY=<your-api-key> video-caption-translator --lang en --type video
 > [!TIP]
 >
 > Since it's built with Bun, it can automatically load the environment variables in the `.env` file right in your working directory.
+
+## Docker 🐳
+
+video-caption-translator is available as a container image to simplify deployment. You can pull this image from the GitHub Container Registry.
+
+Here's an example of how to use it directly:
+
+```bash
+docker run -it --rm -v $PWD:/root -e OPENAI_API_KEY=<your-api-key> ghcr.io/nomi-nonsz/video-caption-translator:latest --lang en --type video --model openai/gpt-5-mini mycontent.mkv -o mycontent-translated.mkv
+```
 
 ## Providers
 
