@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 
 RUN bun ci
-RUN bun build --compile --target bun-linux-x64 --minify ./src/index.ts --outfile /build/video-caption-translator
+RUN bun build --compile --target bun-linux-x64 --minify --sourcemap --bytecode ./src/index.ts --outfile /build/video-caption-translator
 
 FROM alpine:latest
 
