@@ -3,8 +3,7 @@ name: Build
 on:
   push:
     branches:
-      # - main
-      - feat/cd
+      - main
 
 jobs:
   docker:
