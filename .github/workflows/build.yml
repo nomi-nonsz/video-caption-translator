@@ -11,6 +11,11 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -26,4 +31,4 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: video-caption-translator:latest
+          tags: ghcr.io/nomi-nonsz/video-caption-translator:latest
