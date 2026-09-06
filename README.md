@@ -12,7 +12,7 @@ _Animation: [Sprite Fright](https://youtu.be/_cMxraX_5RE) by Blender Studio_
 
 Using Ollama as your primary provider lets you easily use models both locally and in the cloud.
 
-# Installation:
+## Installation
 
 > [!IMPORTANT]
 >
@@ -20,7 +20,15 @@ Using Ollama as your primary provider lets you easily use models both locally an
 
 For installation, go to [releases page](https://github.com/nomi-nonsz/video-caption-translator/releases) and download the executable binary based on your operating system.
 
-# Usage
+### Automated Installation (Beta)
+
+Linux/MacOS only.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nomi-nonsz/video-caption-translator/refs/heads/main/install.sh | sh
+```
+
+## Usage
 
 ```bash
 video-caption-translator --lang en --type video --model openai/gpt-5-mini mycontent.mkv -o mycontent-translated.mkv
@@ -38,7 +46,7 @@ List connected models
 video-caption-translator --list-models
 ```
 
-# Configuration
+## Configuration
 
 Configuration can be set via environment variables
 
@@ -64,13 +72,43 @@ ANTHROPIC_API_KEY=<your-api-key> video-caption-translator --lang en --type video
 >
 > Since it's built with Bun, it can automatically load the environment variables in the `.env` file right in your working directory.
 
-## OpenAI and Anthropic models
+## Docker 🐳
 
-By default, this video-caption-translator uses Ollama as its main provider. Starting with version v1.1.0, you can use models from OpenAI and Anthropic by setting their API keys
+video-caption-translator is available as a container image to simplify deployment. You can pull this image from the GitHub Container Registry.
+
+Here's an example of how to use it directly:
 
 ```bash
-export OPENAI_API_KEY=<your-api-key>
+docker run -it --rm -v $PWD:/root -e OPENAI_API_KEY=<your-api-key> ghcr.io/nomi-nonsz/video-caption-translator:latest --lang en --type video --model openai/gpt-5-mini mycontent.mkv -o mycontent-translated.mkv
+```
+
+## Providers
+
+Supported providers:
+
+- Anthropic
+- Groq
+- Google
+- LM Studio
+- OpenAI
+- xAI
+
+```bash
 export ANTHROPIC_API_KEY=<your-api-key>
+export GROQ_API_KEY=<your-api-key>
+export GOOGLE_API_KEY=<your-api-key>
+export OPENAI_API_KEY=<your-api-key>
+export XAI_API_KEY=<your-api-key>
+export LM_API_TOKEN=<your-token>
+```
+
+## Local Ollama and LM Studio
+
+To use Ollama and LM Studio locally, set the `OLLAMA_HOST` and `LM_HOST` with your local url
+
+```bash
+export OLLAMA_HOST="http://localhost:11434"
+export LM_HOST="http://localhost:1234"
 ```
 
 ## Ollama Cloud
