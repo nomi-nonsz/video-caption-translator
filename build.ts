@@ -4,10 +4,8 @@ import { Argument, program } from "commander";
 import * as config from "./src/lib/config"
 import path from "path";
 
-const APP_NAME = `${config.APP_NAME}-${config.APP_VERSION}`;
-
 const SOURCE = path.join(__dirname, "src/index.ts");
-const OUTFILE = path.join(__dirname, "dist", APP_NAME);
+const OUTFILE = path.join(__dirname, "dist", config.APP_NAME);
 
 const Platform = {
   WINDOWS: 'windows',
