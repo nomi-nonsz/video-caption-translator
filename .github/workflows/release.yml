@@ -2,10 +2,8 @@ name: Build
 
 on:
   push:
-    # tags:
-    #   - 'v*.*.*'
-    branches:
-      - feat/enchange-build
+    tags:
+      - 'v*.*.*'
 
 env:
   APP_NAME: video-caption-translator
@@ -26,7 +24,7 @@ jobs:
         run: |
           make install
           make build
-          rm -f dist/*.js.map
+          rm -f dist\*.map
         
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -49,7 +47,7 @@ jobs:
         run: |
           bun install
           bun run build-windows
-          Remove-Item -Path "dist\*.js.map" -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "dist\*.map" -Force -ErrorAction SilentlyContinue
         
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -110,7 +108,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: ./downloads/*
+          files: ./downloads/**/*
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
