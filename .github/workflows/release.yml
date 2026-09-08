@@ -1,4 +1,4 @@
-name: Build
+name: Release
 
 on:
   push:
@@ -83,7 +83,7 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=latest
         
-      - name: Build
+      - name: Build and push
         uses: docker/build-push-action@v5
         if: github.ref_type == 'tag'
         with:

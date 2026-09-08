@@ -4,7 +4,6 @@ set -e
 
 INSTALL_DIR=$HOME/.local/bin
 APP_NAME=video-caption-translator
-APP_VERSION=v1.2.0
 BASE_URL=https://github.com/nomi-nonsz/video-caption-translator/releases/download
 
 OS="idk"
@@ -38,9 +37,9 @@ case "$ARCH_CHECK" in
     ;;
 esac
 
-FULL_URL="$BASE_URL/$APP_VERSION/$APP_NAME-$APP_VERSION-$OS-$ARCH"
+FULL_URL="$BASE_URL/latest/$APP_NAME-$OS-$ARCH"
 
-echo "Downloading $APP_NAME-$APP_VERSION-$OS-$ARCH..."
+echo "Downloading $APP_NAME-$OS-$ARCH..."
 
 curl -sSL "$FULL_URL" -o "$INSTALL_DIR/$APP_NAME"
 chmod +x "$INSTALL_DIR/$APP_NAME"
