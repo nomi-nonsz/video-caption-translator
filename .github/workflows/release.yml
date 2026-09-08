@@ -20,8 +20,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - uses: oven-sh/setup-bun@v2
+
       - name: Build unixes
-        uses: oven-sh/setup-bun@v2
         run: |
           make install
           make build
@@ -41,8 +42,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - uses: oven-sh/setup-bun@v2
+
       - name: Build windows
-        uses: oven-sh/setup-bun@v2
         shell: pwsh
         run: |
           bun install
@@ -92,6 +94,7 @@ jobs:
 
   release:
     name: Create draft release
+    needs: [build-unixes, build-windows]
     runs-on: ubuntu-latest
 
     permissions:
