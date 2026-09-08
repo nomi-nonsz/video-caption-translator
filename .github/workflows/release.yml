@@ -87,6 +87,7 @@ jobs:
         
       - name: Build
         uses: docker/build-push-action@v5
+        if: github.ref_type == 'tag'
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -98,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Download artifacts
