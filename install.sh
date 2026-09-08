@@ -4,7 +4,7 @@ set -e
 
 INSTALL_DIR=$HOME/.local/bin
 APP_NAME=video-caption-translator
-APP_VERSION=v1.1.0
+APP_VERSION=v1.2.0
 BASE_URL=https://github.com/nomi-nonsz/video-caption-translator/releases/download
 
 OS="idk"
