@@ -10,7 +10,10 @@
   },
   "scripts": {
     "dev": "bun src/index.ts",
-    "build": "bun build --compile --minify ./src/index.ts --outfile video-caption-translator",
+    "build-linux": "bun ./build.ts linux",
+    "build-linux-arm64": "bun ./build.ts linux-arm64",
+    "build-macos": "bun ./build.ts macos",
+    "build-windows": "bun ./build.ts windows",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {

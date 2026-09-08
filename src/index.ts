@@ -48,6 +48,7 @@ const optionParser = {
 }
 
 program
+  .name(config.APP_NAME)
   .description(`${config.APP_NAME}: Translate video caption to any language with AI!`)
   .version(config.APP_VERSION)
   .option("-l, --lang <language>", "pick the target language to translate", optionParser.lang, "en")
