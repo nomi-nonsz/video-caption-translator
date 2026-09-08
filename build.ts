@@ -6,6 +6,7 @@ import path from "path";
 
 const SOURCE = path.join(__dirname, "src/index.ts");
 const OUTFILE = path.join(__dirname, "dist", config.APP_NAME);
+const VERSION_RAW = config.APP_VERSION.slice(1, config.APP_VERSION.length)
 
 const Platform = {
   WINDOWS: 'windows',
@@ -47,7 +48,7 @@ async function build_windows() {
       windows: {
         title: config.APP_NAME,
         description: "A command-based AI-powered tool for translating video subtitles.",
-        version: config.APP_VERSION,
+        version: VERSION_RAW,
         publisher: 'nomi-nonsz',
         icon: path.join(__dirname, 'src/public/icon.ico'),
       }

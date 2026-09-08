@@ -26,7 +26,7 @@ jobs:
         run: |
           make install
           make build
-          rm dist/*.js.map
+          rm -f dist/*.js.map
         
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -49,7 +49,7 @@ jobs:
         run: |
           bun install
           bun run build-windows
-          rm dist/*.js.map
+          Remove-Item -Path "dist\*.js.map" -Force -ErrorAction SilentlyContinue
         
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
