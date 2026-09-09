@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 set -e
 
@@ -37,11 +37,11 @@ case "$ARCH_CHECK" in
     ;;
 esac
 
-FULL_URL="$BASE_URL/latest/$APP_NAME-$OS-$ARCH"
+DOWNLOAD_URL="$BASE_URL/latest/$APP_NAME-$OS-$ARCH"
 
 echo "Downloading $APP_NAME-$OS-$ARCH..."
 
-curl -sSL "$FULL_URL" -o "$INSTALL_DIR/$APP_NAME"
+curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/$APP_NAME"
 chmod +x "$INSTALL_DIR/$APP_NAME"
 
 echo "Completed ✔"
