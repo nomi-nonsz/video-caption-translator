@@ -37,7 +37,8 @@ case "$ARCH_CHECK" in
     ;;
 esac
 
-DOWNLOAD_URL="$BASE_URL/latest/$APP_NAME-$OS-$ARCH"
+TAG=$(curl -s https://api.github.com/repos/nomi-nonsz/$APP_NAME/releases/latest | grep '"tag_name":' | cut -d '"' -f 4)
+DOWNLOAD_URL="$BASE_URL/$TAG/$APP_NAME-$OS-$ARCH"
 
 echo "Downloading $APP_NAME-$OS-$ARCH..."
 
