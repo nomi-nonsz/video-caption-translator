@@ -31,6 +31,10 @@ export function cleanup() {
   }
 }
 
+export function load(path: string) {
+  return fs.readFileSync(path, 'utf8');
+}
+
 export function isValidJSON(json: string) {
   try {
     JSON.parse(json);
