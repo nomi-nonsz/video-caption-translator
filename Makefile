@@ -1,5 +1,5 @@
 APP_NAME = video-caption-translator
-APP_VERSION = 1.2.0
+APP_VERSION = 1.2.1
 
 install:
 	bun install
