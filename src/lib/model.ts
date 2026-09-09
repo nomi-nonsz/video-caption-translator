@@ -464,7 +464,7 @@ export default class Model {
             }
           }) : {},
           stream: false,
-          max_tokens: 1280,
+          max_tokens: 1480,
           thinking: {
             type: request.think ? 'adaptive' : 'disabled',
           }
